@@ -4,7 +4,7 @@ author: Fang Wu
 ---
 
 ```{r setup, include=TRUE}
-knitr::opts_chunk$set(echo=TRUE)
+knitr::opts_chunk$set(echo=TRUE, message = FALSE)
 ```
 
 This document is a vignette to show how to retrieve data from an API. To demonstrate, I'll be interacting with the Polygon.io API. I am going to build a few functions to interact with some of the endpoints and explore aome of the data I can retrieve. 
@@ -31,6 +31,7 @@ library(dplyr)
 library(jsonlite)
 library(ggplot2)
 library(purrr)
+library(lubridate)
 ```
 
 
@@ -107,7 +108,7 @@ date_perform <- function(date){
     apikey <- "?adjusted=true&apiKey=dJT0WQZ7GwH45bAZ8TBZT3KusMgjNJM2"
     date_raw <- GET(paste0(mainURL, date, apikey))
     date_data <- fromJSON(rawToChar(date_raw$content))
-    date_info <- date_data$results %>% as_tibble() %>% rename(ticker=T, close=c,
+    date_info <- date_data$results %>% as_tibble() %>% rename(ticker=T, adj.close=c,
                       highest=h, lowest=l, ransactions=n, open=o, volume=v,) %>%
                      select(ticker, open, close, highest, lowest, volume)
     return(date_info)
@@ -118,16 +119,16 @@ date_perform("2022-06-10")
 
 Aggregates (Bars)
 
-```{r}
-Apple_his <- GET("https://api.polygon.io/v2/aggs/ticker/AAPL/range/1/day/2021-06-01/2022-06-01?adjusted=true&limit=1000&apiKey=dJT0WQZ7GwH45bAZ8TBZT3KusMgjNJM2")
-Apple_his <- fromJSON(rawToChar(Apple_his$content))
-Apple_info <- Apple_his$results %>% as_tibble() %>% rename(close=c,
-                      highest=h, lowest=l, ransactions=n, open=o, volume=v,) %>%
-                      mutate(ticker="AAPL", index=seq(Apple_his$queryCount)) %>% select(-t,-ransactions)
-Apple_info
-```
-
 Gain information for tickers over a period
+
+```{r}
+raw <- GET("https://api.polygon.io/v2/aggs/ticker/AAPL/range/1/day/2021-06-01/2022-06-01?adjusted=true&sort=asc&limit=1000&apiKey=dJT0WQZ7GwH45bAZ8TBZT3KusMgjNJM2")
+data <- fromJSON(rawToChar(raw$content))
+t <- data$results$t[1]
+library(anytime)
+as.POSIXct(t, origin = "1970-01-01")
+as.POSIXct(t/1000, origin = "1970-01-01")
+```
 
 ```{r}
 stock_data <- function(ticker, multiplier, timespan, from, to){
@@ -141,10 +142,10 @@ stock_data <- function(ticker, multiplier, timespan, from, to){
         ticker <- paste0("/ticker/", i)
         stock_raw <- GET(paste0(mainURL, ticker, range, from, to, apikey))
         stock_data <- fromJSON(rawToChar(stock_raw$content))
-        stock <- stock_data$results %>% as_tibble() %>% rename(close=c,
-                         highest=h, lowest=l, transactions=n, open=o, volume=v, 
-                         volume_weighted_average_price=vw) %>% 
-                      mutate(ticker=i, index=seq(stock_data$resultsCount)) %>%                                          select(ticker, index, close, highest, lowest, open, volume)
+        stock <- stock_data$results %>% as_tibble() %>% 
+            rename(adj.close=c, highest=h, lowest=l, open=o, volume=v,
+                   volume_weighted_average_price=vw) %>% 
+            mutate(ticker=i, date=as.POSIXct(t/1000, origin = "1970-01-01")) %>%                              select(ticker, date, adj.close, highest, lowest, open, volume)
         stock_info = bind_rows(stock_info, stock)
     }                   
     return(stock_info)
@@ -152,15 +153,53 @@ stock_data <- function(ticker, multiplier, timespan, from, to){
 
 ```
 
+Interested in apple, zoom, google and amd
+
 ```{r}
 
-stock_data <- stock_data(ticker=c("AAPL","ZM","GOOGL","AMD"),multiplier="1", timespan="day",                   from="2021-06-01", to="2022-06-01") 
+stock_data <- stock_data(ticker=c("AAPL","ZM","GOOGL","TSLA"),multiplier="1", timespan="day",                   from="2021-06-01", to="2022-06-01") 
 stock_data
 ```
 
+calculate simple returns
+
 ```{r}
-g <- ggplot(stock_data, aes(x=index, y=close, group=ticker))
-g + geom_line(aes(color=ticker))
+Apple_data <- stock_data %>% filter(ticker=="AAPL")
+n <- nrow(Apple_data)
+returns <- function(x){
+    returns <- c(NA, (x[2:n]-x[1:(n-1)])/(x[1:(n-1)]))
+    return(returns)
+}
+Apple_data <- Apple_data %>% mutate(returns=returns(Apple_data$adj.close))
+Apple_data
+```
+
+```{r}
+g <- ggplot(Apple_data, aes(x=date, y=return))
+g + geom_line()
+```
+
+
+
+```{r}
+stock_data %>% group_by(ticker) %>% summarise(avg=mean(adj.close), sd=sd(adj.close), median=median(adj.close))
+```
+
+
+```{r, size=2000%}
+g <- ggplot(stock_data, aes(x=date, y=adj.close, color=ticker))
+g + geom_line(lwd=1.3) +
+    labs(x="Date", title="Adjusted Close Price") 
+```
+
+```{r, size=2000%}
+g <- ggplot(stock_data, aes(x=ticker, y=adj.close))
+g + geom_boxplot(aes(color=ticker)) 
+```
+
+```{r, size=2000%}
+g <- ggplot(Apple_data, aes(x=returns, y=volume))
+g + geom_point() 
 ```
 
 
@@ -168,3 +207,13 @@ g + geom_line(aes(color=ticker))
 summary_by_ticker <- stock_info %>% group_by(ticker) %>% summarise(avg=mean(close), sd=sd(close), avg_v=mean(volume))
 summary_by_ticker
 ```
+ "Dec 2021", "Jan 2022", "Feb 2022", "Mar 2022", "Apr 2022", "May 2022"
+ +
+    scale_x_discrete(labels=c("Jun 2021", "Aug 2021","Oct 2021","Dec 2021", "Feb 2022", "Apr 2022", ))
+    
+```{r}
+raw <- GET("https://api.polygon.io/v3/trades/AAPL?apiKey=dJT0WQZ7GwH45bAZ8TBZT3KusMgjNJM2")
+data <- fromJSON(rawToChar(raw$content))
+str(data)
+```
+
