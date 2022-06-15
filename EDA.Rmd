@@ -2,3 +2,40 @@
 title: Analysing Stock Data from API
 author: Fang Wu
 ---
+
+```{r setup, include=TRUE}
+knitr::opts_chunk$set(echo=TRUE)
+```
+
+This document is a vignette to show how to retrieve data from an API. To demonstrate, I'll be interacting with the Polygon.io API. I am going to build a few functions to interact with some of the endpoints and explore aome of the data I can retrieve. 
+
+As a note, 
+
+## Required Packages
+
+I used the following packages to interact with API and analyse the data:
+
+* httr: importing files from Web APIs 
+
+* dplyr: manipulating data 
+
+* jsonlite: converting JSON data to R objects
+
+* ggplot2: visualizing the data
+
+* purrr: maping summary to all columns by group
+
+```{r}
+library(httr)
+library(dplyr)
+library(jsonlite)
+library(ggplot2)
+library(purrr)
+```
+
+
+## API Interaction Functions
+
+I define some functions to interact with Polygon.io API and return well-formatted data. 
+
+helper function to determine the type
