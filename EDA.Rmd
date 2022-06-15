@@ -123,39 +123,48 @@ Apple_his <- GET("https://api.polygon.io/v2/aggs/ticker/AAPL/range/1/day/2021-06
 Apple_his <- fromJSON(rawToChar(Apple_his$content))
 Apple_info <- Apple_his$results %>% as_tibble() %>% rename(close=c,
                       highest=h, lowest=l, ransactions=n, open=o, volume=v,) %>%
-                      select(-t,-ransactions)
+                      mutate(ticker="AAPL", index=seq(Apple_his$queryCount)) %>% select(-t,-ransactions)
 Apple_info
 ```
 
-
+Gain information for tickers over a period
 
 ```{r}
-ticker_his <- function(ticker, from, to){
-    start_date <- as.Date(from)
-    end_date <- as.Date(to)
-    date <- seq(start_date, end_date, "day")
-    mainURL <- "https://api.polygon.io/v1/open-close/"
-    apikey <- "?adjusted=true&apiKey=dJT0WQZ7GwH45bAZ8TBZT3KusMgjNJM2"
+stock_data <- function(ticker, multiplier, timespan, from, to){
+    mainURL <- "https://api.polygon.io/v2/aggs"
+    apikey <- "?limit=1000&apiKey=dJT0WQZ7GwH45bAZ8TBZT3KusMgjNJM2"
+    range <- paste0("/range/", multiplier,"/", timespan)
+    from <- paste0("/", from)
+    to <- paste0("/", to)
     stock_info <- NULL
     for (i in ticker){
-        for (j in date){
-            ticker <- paste0(j, "/")
-            stock_raw <- GET(paste0(mainURL, ticker, j, apikey))
-            stock_data <- fromJSON(rawToChar(stock_raw$content))
-            stock <- as_tibble(stock_data)
-            stock_info = bind_rows(stock_info, stock)
-        }
+        ticker <- paste0("/ticker/", i)
+        stock_raw <- GET(paste0(mainURL, ticker, range, from, to, apikey))
+        stock_data <- fromJSON(rawToChar(stock_raw$content))
+        stock <- stock_data$results %>% as_tibble() %>% rename(close=c,
+                         highest=h, lowest=l, transactions=n, open=o, volume=v, 
+                         volume_weighted_average_price=vw) %>% 
+                      mutate(ticker=i, index=seq(stock_data$resultsCount)) %>%                                          select(ticker, index, close, highest, lowest, open, volume)
+        stock_info = bind_rows(stock_info, stock)
     }                   
     return(stock_info)
 }
+
 ```
 
 ```{r}
-a <- as.Date("2022-06-01")
-format(a, "%Y-%m-%d")
+
+stock_data <- stock_data(ticker=c("AAPL","ZM","GOOGL","AMD"),multiplier="1", timespan="day",                   from="2021-06-01", to="2022-06-01") 
+stock_data
+```
+
+```{r}
+g <- ggplot(stock_data, aes(x=index, y=close, group=ticker))
+g + geom_line(aes(color=ticker))
 ```
 
 
 ```{r}
-ticker_his(ticker=c("AAPL"), from="2021-06-01", to="2022-06-01")
+summary_by_ticker <- stock_info %>% group_by(ticker) %>% summarise(avg=mean(close), sd=sd(close), avg_v=mean(volume))
+summary_by_ticker
 ```
