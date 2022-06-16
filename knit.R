@@ -1,0 +1,1 @@
+rmarkdown::render(input="EDA.Rmd", output_file="README.md", output_format="github_document")
