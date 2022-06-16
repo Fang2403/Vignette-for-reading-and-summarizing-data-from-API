@@ -265,7 +265,7 @@ g + geom_line(aes(y=close, color="close")) +
 
 ### Relationship between volume and returns
 
-```{r, size=2000%}
+```{r}
 g <- ggplot(return_data, aes(x=returns, y=volume))
 g + geom_point() +
     facet_wrap(~ticker)
