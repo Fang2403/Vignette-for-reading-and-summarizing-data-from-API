@@ -150,7 +150,7 @@ stock_data
 
 Now let’s compare daily close prices between these four companies. 
 
-```{r, size=2000%}
+```{r}
 g <- ggplot(stock_data, aes(x=date, y=close, color=ticker))
 g + geom_line() +
     labs(x="Date", y="Close Price", title="Series of Daily Close Price") +
@@ -164,7 +164,7 @@ Google’s stock is much more expensive than the others', and this difference ma
 stock_data %>% group_by(ticker) %>% summarise(avg=mean(close), sd=sd(close), median=median(close))
 ```
 
-```{r, size=2000%}
+```{r}
 g <- ggplot(stock_data, aes(x=ticker, y=close))
 g + geom_boxplot(aes(color=ticker)) 
 ```
@@ -270,7 +270,3 @@ g <- ggplot(return_data, aes(x=returns, y=volume))
 g + geom_point() +
     facet_wrap(~ticker)
 ```
-
-
-
-
