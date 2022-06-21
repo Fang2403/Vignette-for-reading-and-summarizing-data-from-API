@@ -3,13 +3,13 @@ title: Analysing Stock Data from API
 author: Fang Wu
 ---
 
-```{r setup, include=TRUE}
+```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo=TRUE, message = FALSE, warning=FALSE)
 ```
 
 This document is a vignette to show how to retrieve stock data from Polygon.io API and summarizing stock data using R. First, I am going to build a few user friendly functions to interact with Polygon API and return well-formatted data. After that, I am going to perform a basic exploratory data analysis (EDA) on the responses. 
 
-## Required Packages
+# Required Packages
 
 I used the following packages to interact with API and analyse the data:
 
@@ -21,7 +21,7 @@ I used the following packages to interact with API and analyse the data:
 
 * ggplot2: visualizing the data
 
-```{r}
+```{r library}
 library(httr)
 library(dplyr)
 library(jsonlite)
@@ -30,34 +30,13 @@ library(purrr)
 library(lubridate)
 ```
 
-## API Interaction Functions
+# API Interaction Functions
 
 I define some use friendly functions to interact with Polygon API to return well-formatted data. I am going to query adjusted price in the following functions as default, since adjusted price incorporates events like splits and dividends distribution, which can affect the series. 
 
-* Ticker Types
+## Reference Data Endpoints
 
-Helper function to check up the abbreviation for the ticker type. 
-
-```{r}
-check_type_code <- function(test, class=NULL, locale=NULL){
-    mainURL <- "https://api.polygon.io/v3/reference/tickers/types?"
-    apikey <- "&apiKey=dJT0WQZ7GwH45bAZ8TBZT3KusMgjNJM2"
-    if (! is.null(class)) {class <- paste0("asset_class=", class) }
-    if (! is.null(locale)) {locale <- paste0("&locale=", locale) }
-    ticker_types <- GET(paste0(mainURL, class, locale,  apikey))
-    types_data <- fromJSON(rawToChar(ticker_types$content))
-    types_info <- types_data$results %>% as_tibble() %>% rename(type=description )
-    if (test %in% types_info$code){
-        return(test)
-    } else if  (tolower(test) %in% tolower(types_info$type)){
-        return(types_info$code[tolower(types_info$type)==tolower(test)] )
-    } else {print("No such type supported by polygon.io")}
-}
-#check
-check_type_code(test="common stock")
-```
-
-* Supported Tickers
+* Tickers
 
 Function to check all the tickers supplied by API. User can specify the type of the tickers, market type, and if the tickers returned should be actively traded on the queried date. With the helper function `check_type_code`, user don't be required to type the abbreviation for the ticker type.
 
@@ -87,24 +66,30 @@ tickers_supported(type="CS", market="stocks")
 
 ```
 
-* Grouped Daily (Bars)
+* Ticker Types
 
-Get the daily open, high, low, and close price information for the entire stocks/equities markets.
+Helper function to check up the abbreviation for the ticker type. 
 
 ```{r}
-date_perform <- function(date){
-    mainURL <- "https://api.polygon.io/v2/aggs/grouped/locale/us/market/stocks/"
-    apikey <- "?adjusted=true&apiKey=dJT0WQZ7GwH45bAZ8TBZT3KusMgjNJM2"
-    date_raw <- GET(paste0(mainURL, date, apikey))
-    date_data <- fromJSON(rawToChar(date_raw$content))
-    date_info <- date_data$results %>% as_tibble() %>% rename(ticker=T, close=c,
-                      highest=h, lowest=l, ransactions=n, open=o, volume=v,) %>%
-                     select(ticker, open, close, highest, lowest, volume)
-    return(date_info)
+check_type_code <- function(test, class=NULL, locale=NULL){
+    mainURL <- "https://api.polygon.io/v3/reference/tickers/types?"
+    apikey <- "&apiKey=dJT0WQZ7GwH45bAZ8TBZT3KusMgjNJM2"
+    if (! is.null(class)) {class <- paste0("asset_class=", class) }
+    if (! is.null(locale)) {locale <- paste0("&locale=", locale) }
+    ticker_types <- GET(paste0(mainURL, class, locale,  apikey))
+    types_data <- fromJSON(rawToChar(ticker_types$content))
+    types_info <- types_data$results %>% as_tibble() %>% rename(type=description )
+    if (test %in% types_info$code){
+        return(test)
+    } else if  (tolower(test) %in% tolower(types_info$type)){
+        return(types_info$code[tolower(types_info$type)==tolower(test)] )
+    } else {print("No such type supported by polygon.io")}
 }
-#check function
-date_perform("2022-06-10")
+#check
+check_type_code(test="common stock")
 ```
+
+## Market Data Endpoints
 
 * Aggregates (Bars)
 
@@ -134,9 +119,29 @@ stock_price <- function(ticker, multiplier, timespan, from, to){
 
 ```
 
-## EDA
+* Grouped Daily (Bars)
 
-### Query Daily Price From API
+Get the daily open, high, low, and close price information for the entire stocks/equities markets.
+
+```{r}
+date_perform <- function(date){
+    mainURL <- "https://api.polygon.io/v2/aggs/grouped/locale/us/market/stocks/"
+    apikey <- "?adjusted=true&apiKey=dJT0WQZ7GwH45bAZ8TBZT3KusMgjNJM2"
+    date_raw <- GET(paste0(mainURL, date, apikey))
+    date_data <- fromJSON(rawToChar(date_raw$content))
+    date_info <- date_data$results %>% as_tibble() %>% rename(ticker=T, close=c,
+                      highest=h, lowest=l, ransactions=n, open=o, volume=v,) %>%
+                     select(ticker, open, close, highest, lowest, volume)
+    return(date_info)
+}
+#check function
+date_perform("2022-06-10")
+```
+
+
+# EDA
+
+## Query Daily Price From API
 
 As I am interested in company Apple, zoom, Google and Tesla, I query their daily price data from 2001-06-01 to 2022-06-01 from Polygon API.  
 
