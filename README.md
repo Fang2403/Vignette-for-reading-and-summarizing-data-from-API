@@ -2,17 +2,13 @@ Analysing Stock Data from API
 ================
 Fang Wu
 
-``` r
-knitr::opts_chunk$set(echo=TRUE, message = FALSE, warning=FALSE)
-```
-
 This document is a vignette to show how to retrieve stock data from
 Polygon.io API and summarizing stock data using R. First, I am going to
 build a few user friendly functions to interact with Polygon API and
 return well-formatted data. After that, I am going to perform a basic
 exploratory data analysis (EDA) on the responses.
 
-## Required Packages
+# Required Packages
 
 I used the following packages to interact with API and analyse the data:
 
@@ -33,12 +29,14 @@ library(purrr)
 library(lubridate)
 ```
 
-## API Interaction Functions
+# API Interaction Functions
 
 I define some use friendly functions to interact with Polygon API to
 return well-formatted data. I am going to query adjusted price in the
 following functions as default, since adjusted price incorporates events
 like splits and dividends distribution, which can affect the series.
+
+## Reference Data Endpoints
 
 -   Ticker Types
 
@@ -65,7 +63,7 @@ check_type_code(test="common stock")
 
     ## [1] "CS"
 
--   Supported Tickers
+-   Tickers
 
 Function to check all the tickers supplied by API. User can specify the
 type of the tickers, market type, and if the tickers returned should be
@@ -119,6 +117,51 @@ tickers_supported(type="CS", market="stocks")
     ## #   composite_figi <chr>,
     ## #   share_class_figi <chr>, ...
 
+## Market Data Endpoints
+
+-   Aggregates (Bars)
+
+Define function to get stock price data for specified stocks over a
+given date range in custom time window sizes. For example, we want to
+query daily price data for company Apply, Google, Tesla, and Zoom from
+2001-06-01 to 2022-06-01 from Polygon API.
+
+``` r
+stock_price <- function(ticker, multiplier, timespan, from, to){
+    mainURL <- "https://api.polygon.io/v2/aggs"
+    apikey <- "?limit=1000&apiKey=dJT0WQZ7GwH45bAZ8TBZT3KusMgjNJM2"
+    ticker_sym <- paste0("/ticker/", ticker)
+    range <- paste0("/range/", multiplier,"/", timespan)
+    from <- paste0("/", from)
+    to <- paste0("/", to)
+    stock_raw <- GET(paste0(mainURL, ticker_sym, range, from, to, apikey))
+    stock_data <- fromJSON(rawToChar(stock_raw$content))
+    stock <- stock_data$results %>% as_tibble() %>% 
+        rename(close=c, highest=h, lowest=l, open=o, volume=v, 
+               volume_weighted_average_price=vw) %>% 
+        mutate(ticker=ticker, date=as.Date(as.POSIXct(t/1000, origin = "1970-01-01"))) %>% 
+        select(ticker, date, close, highest, lowest, open, volume)
+    return(stock)
+}
+
+# check
+#stock_price("AAPL", "1", "day", "2021-06-01", "2022-06-01")
+```
+
+Put it in parallel computing
+
+``` r
+#library(parallel)
+#cluster <- makeCluster(detectCores()-1)
+#clusterExport(cluster, list("stock_price", "fromJSON", "rawToChar"))
+#clusterEvalQ(cluster, library(tidyverse))
+#clusterEvalQ(cluster, library(httr))
+#tickers_interest=c("AAPL","ZM","GOOGL","TSLA")
+#result <- parLapply(cluster, X=tickers_interest, fun=stock_price, multiplier="1",
+#                         timespan="day",from="2021-06-01", to="2022-06-01")
+#result
+```
+
 -   Grouped Daily (Bars)
 
 Get the daily open, high, low, and close price information for the
@@ -136,65 +179,20 @@ date_perform <- function(date){
     return(date_info)
 }
 #check function
-date_perform("2022-06-10")
+#date_perform("2022-06-10")
 ```
 
-    ## # A tibble: 11,107 x 6
-    ##    ticker   open  close highest
-    ##    <chr>   <dbl>  <dbl>   <dbl>
-    ##  1 EFAD    35.2   35.1    35.2 
-    ##  2 ALC     70.5   70.1    70.9 
-    ##  3 JNUG    47.8   54.0    54.6 
-    ##  4 PXD    275.   271.    278.  
-    ##  5 VYM    107.   106.    107.  
-    ##  6 VZ      50.6   50.8    51.4 
-    ##  7 CNXN    44.4   44.2    44.5 
-    ##  8 BMBL    30.1   30.4    31.3 
-    ##  9 VCSA     3.19   2.92    3.26
-    ## 10 HOFT    17.7   16.6    17.7 
-    ## # ... with 11,097 more rows, and 2
-    ## #   more variables: lowest <dbl>,
-    ## #   volume <dbl>
+# EDA
 
--   Aggregates (Bars)
-
-Define function to get stock price data for specified stocks over a
-given date range in custom time window sizes. For example, we want to
-query daily price data for company Apply, Google, Tesla, and Zoom from
-2001-06-01 to 2022-06-01 from Polygon API.
-
-``` r
-stock_price <- function(ticker, multiplier, timespan, from, to){
-    mainURL <- "https://api.polygon.io/v2/aggs"
-    apikey <- "?limit=1000&apiKey=dJT0WQZ7GwH45bAZ8TBZT3KusMgjNJM2"
-    range <- paste0("/range/", multiplier,"/", timespan)
-    from <- paste0("/", from)
-    to <- paste0("/", to)
-    stock_info <- NULL
-    for (i in ticker){
-        ticker <- paste0("/ticker/", i)
-        stock_raw <- GET(paste0(mainURL, ticker, range, from, to, apikey))
-        stock_data <- fromJSON(rawToChar(stock_raw$content))
-        stock <- stock_data$results %>% as_tibble() %>% 
-            rename(close=c, highest=h, lowest=l, open=o, volume=v,
-                   volume_weighted_average_price=vw) %>% 
-            mutate(ticker=i, date=as.Date(as.POSIXct(t/1000, origin = "1970-01-01"))) %>%                     select(ticker, date, close, highest, lowest, open, volume)
-        stock_info = bind_rows(stock_info, stock)
-    }                   
-    return(stock_info)
-}
-```
-
-## EDA
-
-### Query Daily Price From API
+## Query Daily Price From API
 
 As I am interested in company Apple, zoom, Google and Tesla, I query
 their daily price data from 2001-06-01 to 2022-06-01 from Polygon API.
 
 ``` r
-stock_data <- stock_price(ticker=c("AAPL","ZM","GOOGL","TSLA"), multiplier="1",
-                         timespan="day",from="2021-06-01", to="2022-06-01") 
+tickers_interest=c("AAPL","ZM","GOOGL","TSLA")
+stock_data <- lapply(X=tickers_interest, FUN=stock_price, multiplier="1",
+                         timespan="day",from="2021-06-01", to="2022-06-01") %>% reduce(bind_rows)
 stock_data
 ```
 
@@ -227,7 +225,7 @@ g + geom_line() +
     scale_x_date(date_labels = "%b %y", date_breaks="2 months") 
 ```
 
-![](README_files/figure-gfm/unnamed-chunk-7-1.png)<!-- -->
+![](README_files/figure-gfm/unnamed-chunk-109-1.png)<!-- -->
 
 Google’s stock is much more expensive than the others’, and this
 difference makes Apple’s and Zoom’s stocks appear much less volatile
@@ -236,23 +234,32 @@ Actually, we find the deviation for Zoom is not small from the following
 table.
 
 ``` r
-stock_data %>% group_by(ticker) %>% summarise(avg=mean(close), sd=sd(close), median=median(close))
+summary_table <- stock_data %>% group_by(ticker) %>% summarise(avg=mean(close), sd=sd(close), median=median(close), IQR=IQR(close))
+summary_table
 ```
 
-    ## # A tibble: 4 x 4
-    ##   ticker   avg    sd median
-    ##   <chr>  <dbl> <dbl>  <dbl>
-    ## 1 AAPL    155.  13.9   152.
-    ## 2 GOOGL  2682. 209.   2725.
-    ## 3 TSLA    859. 167.    842.
-    ## 4 ZM      225. 101.    207.
+    ## # A tibble: 4 x 5
+    ##   ticker   avg    sd median   IQR
+    ##   <chr>  <dbl> <dbl>  <dbl> <dbl>
+    ## 1 AAPL    155.  13.9   152.  20.7
+    ## 2 GOOGL  2682. 209.   2725. 304. 
+    ## 3 TSLA    859. 167.    842. 298. 
+    ## 4 ZM      225. 101.    207. 191.
+
+``` r
+g <- ggplot(summary_table, aes(x=ticker))
+g + geom_bar(aes(y=sd), stat="identity", fill="dark blue") +
+    labs(title="standard deviation comparision")
+```
+
+![](README_files/figure-gfm/unnamed-chunk-111-1.png)<!-- -->
 
 ``` r
 g <- ggplot(stock_data, aes(x=ticker, y=close))
 g + geom_boxplot(aes(color=ticker)) 
 ```
 
-![](README_files/figure-gfm/unnamed-chunk-9-1.png)<!-- -->
+![](README_files/figure-gfm/unnamed-chunk-112-1.png)<!-- -->
 
 A solution would be to plot the stock’s daily returns.
 
@@ -263,17 +270,12 @@ First, I am going to define a function to calculate simple returns.
 ``` r
 get_returns <- function(data_set){
     returns <- function(x){
+        n=length(x)
         returns <- c(NA, (x[2:n]-x[1:(n-1)])/(x[1:(n-1)]))
         return(returns)
     }
-    new_set=NULL
-    for (i in unique(data_set$ticker)){
-        data <- stock_data %>% filter(ticker==i)
-        n <- nrow(data)
-        data <- data %>% mutate(returns=returns(data$close))
-        new_set <- bind_rows(new_set, data)
-    }
-    return(new_set)
+    new_data <- data_set %>% group_by(ticker) %>% mutate(returns=returns(close)) %>% ungroup()
+    return(new_data)
 }
 #test new function
 return_data <- get_returns(stock_data)
@@ -309,10 +311,11 @@ g + geom_line(color="darkblue") +
     scale_x_date(date_labels = "%b %y", date_breaks="2 months")
 ```
 
-![](README_files/figure-gfm/unnamed-chunk-11-1.png)<!-- -->
+![](README_files/figure-gfm/unnamed-chunk-114-1.png)<!-- -->
 
 ``` r
-return_data %>% group_by(ticker) %>% summarise(avg=mean(returns,na.rm=TRUE), sd=sd(returns,na.rm=TRUE), median=median(returns,na.rm=TRUE))
+return_table <- return_data %>% group_by(ticker) %>% summarise(avg=mean(returns,na.rm=TRUE), sd=sd(returns,na.rm=TRUE), median=median(returns,na.rm=TRUE))
+return_table
 ```
 
     ## # A tibble: 4 x 4
@@ -322,6 +325,20 @@ return_data %>% group_by(ticker) %>% summarise(avg=mean(returns,na.rm=TRUE), sd=
     ## 2 GOOGL  -0.0000121 0.0181  0.000963
     ## 3 TSLA    0.00136   0.0371  0.00201 
     ## 4 ZM     -0.00375   0.0358 -0.00476
+
+``` r
+g <- ggplot(return_table, aes(x=ticker))
+g + geom_bar(aes(y=avg), stat="identity", fill="dark blue")
+```
+
+![](README_files/figure-gfm/unnamed-chunk-116-1.png)<!-- -->
+
+``` r
+g <- ggplot(return_table, aes(x=ticker))
+g + geom_bar(aes(y=sd), stat="identity", fill="dark blue")
+```
+
+![](README_files/figure-gfm/unnamed-chunk-117-1.png)<!-- -->
 
 Which is very surprising is that ZM has a relatively high deviation and
 GOOGL has a relative low deviation in terms of returns.
@@ -334,7 +351,7 @@ g + geom_histogram(color="blue", fill="darkblue") +
     facet_wrap(~ticker)
 ```
 
-![](README_files/figure-gfm/unnamed-chunk-13-1.png)<!-- -->
+![](README_files/figure-gfm/unnamed-chunk-118-1.png)<!-- -->
 
 The distribution of returns for apple is almost symetrical, while the
 distribution of returns for TSLA and ZM have fat tails.
@@ -357,19 +374,15 @@ changes. Now let’s calculate two moving averages for the stock prices
 series, one with 10 days window and the other with 30 days:
 
 ``` r
+library(zoo)
 get_moving_mean <- function(data_set,window){
     moving_mean <- function(x,window){
         moving_mean <- rollmean(x, k=window, fill=list(NA, NULL, NA), align="right")
         return(moving_mean)
     }
-    new_set=NULL
-    for (i in unique(data_set$ticker)){
-        data <- data_set %>% filter(ticker==i)
-        varname=paste0("mean", window)
-        data[[varname]] <- with(data,moving_mean(data$close,window))
-        new_set <- bind_rows(new_set, data)
-    }
-    return(new_set)
+    new_data <- data_set %>% group_by(ticker) %>%
+        mutate(mean10=moving_mean(close,10),mean30=moving_mean(close,30))
+    return(new_data)
 }
 #test new function
 moving_mean_data <- stock_data %>% get_moving_mean(10) %>%  get_moving_mean(30)
@@ -377,6 +390,7 @@ moving_mean_data
 ```
 
     ## # A tibble: 1,016 x 9
+    ## # Groups:   ticker [4]
     ##    ticker date       close highest
     ##    <chr>  <date>     <dbl>   <dbl>
     ##  1 AAPL   2021-06-01  124.    125.
@@ -410,14 +424,24 @@ g + geom_line(aes(y=close, color="close")) +
     scale_x_date(date_labels = "%b %y", date_breaks="2 months")
 ```
 
-![](README_files/figure-gfm/unnamed-chunk-15-1.png)<!-- -->
+![](README_files/figure-gfm/unnamed-chunk-120-1.png)<!-- -->
 
-### Relationship between volume and returns
+### Relationship
+
+relationship between open and close
+
+``` r
+g <- ggplot(stock_data, aes(x=highest, y=volume))
+g + geom_point(aes(color=ticker)) 
+```
+
+![](README_files/figure-gfm/unnamed-chunk-121-1.png)<!-- -->
+
+Relationship between volume and returns
 
 ``` r
 g <- ggplot(return_data, aes(x=returns, y=volume))
-g + geom_point() +
-    facet_wrap(~ticker)
+g + geom_point(aes(color=ticker)) 
 ```
 
-![](README_files/figure-gfm/unnamed-chunk-16-1.png)<!-- -->
+![](README_files/figure-gfm/unnamed-chunk-122-1.png)<!-- -->
