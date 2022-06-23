@@ -317,13 +317,15 @@ g + geom_histogram( fill="darkblue") +
 The distribution of returns for AAPL is almost symmetrical and concentrated, while the distribution of returns for TSLA and ZM have fat tails. This feature is consistent with their standard deviation.
 
 ```{r}
-new <- return_data %>% mutate(rlev=cut(return, breaks=3, labels=c("neg high", "middle","pos high")))
+new <- return_data %>% mutate(rlev=cut(return, breaks=5, labels=c("very bad", "bad", "close 0", "good", "very good")))
 
 ```
 
 ```{r}
 table(new$ticker, new$rlev)
 ```
+
+From this contingency table, we can find that there are both very bad and very good values in TSLA and ZM, which means the large daily changes exist. 
 
 ## Simple Moving Average
 
@@ -334,7 +336,6 @@ A q-day moving average is, for a series $x_t$ and a point in time t, the average
 This indicator is interesting because it helps to identify trends and smooths noises from prices. That is, the bigger the days window for the moving average calculation, smaller is the MA responsiveness to price variation. The smaller the window, the faster MA adapts itself to changes. Now let’s calculate two moving averages for the stock prices series, one with 10 days window and the other with 30 days:
 
 ```{r}
-library(zoo)
 get_moving_mean <- function(data_set,window){
     moving_mean <- function(x,window){
         moving_mean <- rollmean(x, k=window, fill=list(NA, NULL, NA), align="right")
@@ -356,13 +357,24 @@ g <- ggplot(moving_mean_data, aes(x=date))
 g + geom_line(aes(y=close, color="close")) +
     geom_line(aes(y=mean10, color="mean10")) +
     geom_line(aes(y=mean30, color="mean30")) +
-    labs(x="Date", y="Close Price", title="Price Series of AAPL") +
+    labs(x="Date", y="Price", title="Series of Close Price And Moving Mean") +
     theme(plot.title = element_text(hjust = 0.5)) +
-    facet_wrap(~ticker) +
+    facet_wrap(~ticker, scales="free")
     scale_x_date(date_labels = "%b %y", date_breaks="2 months")
 ```
 
-### Relationship
+As what we can guess, the line for mean30 is the most smooth one. 
+
+The moving mean of ZM continue to fall. 
+
+In 2021, the moving mean of TSLA went up, then it started to wave in a large range.
+
+From April all these four tickers started to fall down.
+
+
+TSLA and GOOGL have 
+
+## Relationship
 
 relationship between open and close
 
