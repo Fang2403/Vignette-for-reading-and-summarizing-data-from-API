@@ -1,6 +1,6 @@
 ---
-title: Analysing Stock Data Collected from Polygon.io API
-author: Fang Wu
+title: "Analysing Stock Data Collected from Polygon.io API"
+author: "Fang Wu"
 ---
 
 ```{r setup, include=FALSE}
@@ -73,7 +73,8 @@ type_info <- function(class=NULL, locale=NULL){
 #str(data_list)
 #data_list$results
 
-type_info()
+type_data <- type_info(class="stocks")
+type_data
 ```
 
 In this tibble, `code`  is what Polygon.io uses to refer to `type`. Based on this function I define another helper function to help user convert type description to code used in polygon.io for ticker types. 
@@ -88,7 +89,8 @@ convert_to_code <- function(text, class=NULL, locale=NULL){
     } else {print("No such type supported by polygon.io")}
 }
 #check this helper function 
-convert_to_code(text="American Depository Receipt Common")
+ADRC <- convert_to_code(text="American Depository Receipt Common")
+ADRC
 ```
 
 * Tickers
@@ -117,8 +119,8 @@ tickers_supported <- function(type=NULL, market=NULL, active=TRUE){
     return(tickers_info)
 }
 #check all ADRC tickers
-tickers_supported(type="American Depository Receipt Common")
-
+ADRC_tickers <- tickers_supported(type="American Depository Receipt Common")
+ADRC_tickers
 ```
 
 ## Market Data Endpoints
@@ -146,7 +148,8 @@ stock_price <- function(ticker, multiplier, timespan, from, to){
 }
 
 # check
-stock_price("AAPL", "1", "day", "2021-06-01", "2022-06-01")
+AAPL_price <- stock_price("AAPL", "1", "day", "2021-06-01", "2022-06-01")
+AAPL_price
 ```
 
 ```{r}
@@ -167,7 +170,6 @@ get_price <- function(tickers, num, span, start, end){
 
 Or put it in parallel computing
 
-```{r}
 cluster <- makeCluster(detectCores()-1)
 clusterExport(cluster, list("stock_price", "fromJSON", "rawToChar"))
 clusterEvalQ(cluster, library(tidyverse))
@@ -175,7 +177,6 @@ clusterEvalQ(cluster, library(httr))
 result <- parLapply(cluster, X=tickers_interest, fun=stock_price, multiplier="1",
                          timespan="day",from="2021-06-01", to="2022-06-01")
 reduce(result, bind_rows)
-```
 
 * Grouped Daily (Bars)
 
@@ -187,13 +188,14 @@ one_day <- function(date){
     apikey <- "?adjusted=true&apiKey=dJT0WQZ7GwH45bAZ8TBZT3KusMgjNJM2"
     date_raw <- GET(paste0(mainURL, date, apikey))
     date_data <- fromJSON(rawToChar(date_raw$content))
-    date_info <- date_data$results %>% as_tibble() %>% rename(ticker=T, close=c,
+    date_info <- date_data$results %>% as_tibble() %>% rename( close=c,
                       highest=h, lowest=l, ransactions=n, open=o, volume=v,) %>%
-                     select(ticker, open, close, highest, lowest, volume)
+                     select(T, open, close, highest, lowest, volume)
     return(date_info)
 }
 #check function
-one_day("2022-06-21")
+yesterday <- one_day(date="2022-06-21")
+yesterday
 ```
 
 
