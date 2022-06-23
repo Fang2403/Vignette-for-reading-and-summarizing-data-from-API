@@ -55,7 +55,7 @@ In order to interact with Polygon API and return well-formatted data, I define s
 
 All ticker types that Polygon.io has are listed in this endpoints. I define a function to connect with this endpoints to return a tibble with type description, code used in Polygon.io, asset_class, and locale.  
 
-```{r}
+```{r type function}
 type_info <- function(class=NULL, locale=NULL){
     mainURL <- "https://api.polygon.io/v3/reference/tickers/types?"
     apikey <- "&apiKey=dJT0WQZ7GwH45bAZ8TBZT3KusMgjNJM2"
@@ -83,7 +83,7 @@ In this tibble, `code`  is what Polygon.io uses to refer to `type`.
 
 User can check up the abbreviation for each ticker type through this function. Then I would like to allow user use either abbreviation or full type name in other important market data query. I define another helper function to help user convert type name to code used in polygon.io. 
 
-```{r}
+```{r convert to code function}
 convert_to_code <- function(text, class=NULL, locale=NULL){
     types_info <- type_info(class, locale)
     if (text %in% types_info$code){
@@ -101,7 +101,7 @@ ADRC
 
 We can query all ticker symbols which are supported by Polygon.io through this endpoints. I am going to define a function called `tickers_supported` to allow user specify the type of the tickers, market type, and if the tickers returned should be actively traded on the queried date. With the helper function `convert_to_code`, user don't be required to type the abbreviation for the ticker type exactly.
 
-```{r}
+```{r ticker symbol function}
 tickers_supported <- function(type=NULL, market=NULL, active=TRUE){
     mainURL <- "https://api.polygon.io/v3/reference/tickers?"
     apikey <- "&apiKey=dJT0WQZ7GwH45bAZ8TBZT3KusMgjNJM2"
@@ -137,7 +137,7 @@ First I define a function `stock_price` to query data for one specific ticker an
 
 In this vignette I want to explore daily stock price changes for companies Apply, Google, Tesla, and Zoom from 2001-06-01 to 2022-06-01. So I generate the goal tibble named *stock_data* after defining funcitons. 
 
-```{r}
+```{r historial price for one ticker}
 stock_price <- function(ticker, multiplier, timespan, from, to){
     mainURL <- "https://api.polygon.io/v2/aggs"
     apikey <- "?limit=1000&apiKey=dJT0WQZ7GwH45bAZ8TBZT3KusMgjNJM2"
@@ -160,7 +160,7 @@ stock_price <- function(ticker, multiplier, timespan, from, to){
 #AAPL_price
 ```
 
-```{r}
+```{r goal tibble}
 # generate goal tibble
 tickers_interest=c("AAPL","ZM","GOOGL","TSLA")
 stock_data <- lapply(X=tickers_interest, FUN=stock_price, multiplier="1",
@@ -171,7 +171,7 @@ stock_data
 
 Other methods to do the same task: a wrapper function or parallel computing process.
 
-```{r}
+```{r lapply}
 # wrapper function
 get_price <- function(tickers, num, span, start, end){
     stock_data <- lapply(X=tickers, FUN=stock_price, multiplier=num,
@@ -182,7 +182,7 @@ get_price <- function(tickers, num, span, start, end){
 get_price(tickers=c("AAPL","ZM"), num="1",span="month",start="2021-01-01", end="2022-06-01" )
 ```
 
-```{r, results='hide'}
+```{r parallel}
 #set up parallel process
 cluster <- makeCluster(detectCores()-1)
 clusterExport(cluster, list("stock_price", "fromJSON", "rawToChar"))
@@ -199,7 +199,7 @@ This endpoint provides the daily open, high, low, and close price information fo
 
 I am going to define function named `one_day` to connect the API and return a tibble. Users can specify the date.
 
-```{r}
+```{r one day price }
 one_day <- function(date){
     mainURL <- "https://api.polygon.io/v2/aggs/grouped/locale/us/market/stocks/"
     apikey <- "?adjusted=true&apiKey=dJT0WQZ7GwH45bAZ8TBZT3KusMgjNJM2"
@@ -224,7 +224,7 @@ I have queried daily price data from 2001-06-01 to 2022-06-01 for companies Appl
 
 First, I want to find some trends of the daily close price of these four companies. 
 
-```{r}
+```{r close trend}
 g <- ggplot(stock_data, aes(x=date, y=close, color=ticker))
 g + geom_line() +
     labs(x="Date", y="Close Price", title="Series of Daily Close Price") +
@@ -236,7 +236,7 @@ This plot clearly shows that Google’s stock is much more expensive than the ot
 
 Now I am going to get some descriptive statistics for the close price movement. Compare their standard deviation and IQR to check their volatility. 
 
-```{r}
+```{r summary close}
 summary_table <- stock_data %>% group_by(ticker) %>% summarise(q1=quantile(close, 0.25), mean=mean(close), median=median(close), q3=quantile(close, 0.75), sd=sd(close), IQR=IQR(close))
 summary_table
 ```
@@ -245,7 +245,7 @@ In this table we can find that the standard deviation and IQR of AAPL is indeed 
 
 We can also check the spread of these tickers by the following boxplot.
 
-```{r}
+```{r close boxplot}
 g <- ggplot(stock_data, aes(x=ticker, y=close))
 g + geom_boxplot(aes(color=ticker)) +
     theme(plot.title = element_text(hjust = 0.5)) +
@@ -260,7 +260,7 @@ To solve the problem caused by the high price of GOOGL, we will analyze the simp
 
 First, I am going to define a function to add returns to the previous tibble. 
 
-```{r}
+```{r return funciton}
 get_returns <- function(data_set){
     returns <- function(x){
         n=length(x)
@@ -278,14 +278,14 @@ return_data
 
 Now let's calculate the descriptive statistics of returns. 
 
-```{r}
-return_table <- return_data %>% group_by(ticker) %>% summarise(q1=quantile(close, 0.25), mean=mean(close), median=median(close), q3=quantile(close, 0.75), sd=sd(close), IQR=IQR(close))
+```{r summary return}
+return_table <- return_data %>% group_by(ticker) %>% summarise(q1=quantile(return, 0.25, na.rm=TRUE), mean=mean(return, na.rm=TRUE), median=median(return, na.rm=TRUE), q3=quantile(return, 0.75, na.rm=TRUE), sd=sd(return, na.rm=TRUE), IQR=IQR(return, na.rm=TRUE))
 return_table
 ```
 
 I want to plot this table to show difference visibly. 
 
-```{r}
+```{r mean return bar chart}
 g <- ggplot(return_table, aes(x=ticker))
 g + geom_bar(aes(y=mean), stat="identity", fill="dark blue")+
     labs(y="mean return", title="Mean of the Daily Returns")
@@ -293,7 +293,7 @@ g + geom_bar(aes(y=mean), stat="identity", fill="dark blue")+
 
 The mean return of GOOGL over the past year is so close to 0, while it is negative for ZM and positive for AAPL and TSLA.   
 
-```{r}
+```{r return sd bar chart}
 g <- ggplot(return_table, aes(x=ticker))
 g + geom_bar(aes(y=sd), stat="identity", fill="dark blue")+
     labs(y="return's sd", title="Standard Deviation of the Daily Returns")
@@ -303,7 +303,7 @@ Which is very surprising is that ZM has a relatively high deviation and GOOGL ha
 
 We can also check the spread of these tickers by the following boxplot.
 
-```{r}
+```{r bocplot of return}
 g <- ggplot(return_data, aes(x=ticker, y=return))
 g + geom_boxplot(aes(color=ticker)) +
     theme(plot.title = element_text(hjust = 0.5)) +
@@ -314,7 +314,7 @@ From this plot we can see clearly that the medians are all pretty close to zero,
 
 Now I want to generate a variable `performance` to represent the level of the returns. 
 
-```{r}
+```{r contingency table }
 new <- return_data %>% mutate(rlev=cut(return, breaks=5, labels=c("very bad", "bad", "close 0", "good", "very good")))
 table(new$ticker, new$rlev)
 ```
@@ -323,7 +323,7 @@ From this contingency table, we can find that there are both very bad and very g
 
 Let's check their histogram. 
 
-```{r}
+```{r return histogram}
 g <- ggplot(return_data, aes(x=return))
 g + geom_histogram( fill="darkblue") +
     labs(y="Daily Return", title="Histogram of Daily Return") +
@@ -335,7 +335,7 @@ As expected, lots of activity appear in the middle, however the plots spread out
 
 Now let's check the trend of the `return`.
 
-```{r}
+```{r returns trend}
 g <- ggplot(return_data, aes(x=date, y=return))
 g + geom_line(aes(color=ticker)) +
     labs(y="Daily Return", title="Series of Daily Return") +
@@ -345,7 +345,7 @@ g + geom_line(aes(color=ticker)) +
 
 We can find some large events, though this is not a neat plot. I am going to make subplot by ticker to make more clear comparison. 
 
-```{r}
+```{r subplot}
 g <- ggplot(return_data, aes(x=date, y=return))
 g + geom_line(color="dark blue") +
     labs(y="Daily Return", title="Series of Daily Return 2") +
@@ -364,7 +364,7 @@ A q-day moving average is, for a series $x_t$ and a point in time t, the average
  
 This indicator is interesting because it helps to identify trends and smooths noises from prices. That is, the bigger the days window for the moving average calculation, smaller is the MA responsiveness to price variation. The smaller the window, the faster MA adapts itself to changes. Now let’s calculate two moving averages for the stock prices series, one with 10 days window and the other with 30 days:
 
-```{r}
+```{r moving mean function}
 get_moving_mean <- function(data_set,window){
     moving_mean <- function(x,window){
         moving_mean <- rollmean(x, k=window, fill=list(NA, NULL, NA), align="right")
@@ -381,7 +381,7 @@ moving_mean_data
 
 We calculated the two moving average using 10 and 30 days of windows, filling the values with NA and using the periods in the left. Afterwards, we can plot both series in the same graphic of prices to identify trends.
 
-```{r, dpi=600}
+```{r plot of moving mean}
 g <- ggplot(moving_mean_data, aes(x=date))
 g + geom_line(aes(y=close, color="close")) +
     geom_line(aes(y=mean10, color="mean10")) +
@@ -406,7 +406,7 @@ From this plot we can see:
 
 ### relationship between volume and returns
 
-```{r}
+```{r relationship between volume and returns}
 g <- ggplot(return_data, aes(x=return, y=volume))
 g + geom_point(aes(color=ticker)) 
 ```
@@ -414,7 +414,7 @@ We can see that days with larger absolute return values are more likely to have 
 
 ### correlation between tickers' returns
 
-```{r}
+```{r correlation of different tickers return}
 #change tibble to wider tibble with ticker code as column names
 new_wider <- return_data %>% select(ticker, date, return) %>% pivot_wider(names_from=ticker, values_from=return)
 #calculate correlation between tickers' returns
@@ -425,11 +425,11 @@ corrplot(correlation, type="upper", tl.pos="lt")
 
 What is very interesting is that all these four tickers' returns have positive correlation. AAPL and GOOGL look like strong positive correlation. 
 
-```{r}
+```{r AAPL and GOOGL relation line}
 g <- ggplot(new_wider, aes(x=AAPL, y=GOOGL))
 g + geom_point(position="jitter") +
-    geom_smooth(method=lm, col="blue") +
-    geom_text(x=0.03, y=-0.025, size=5, label=paste0("Correlation = ", round(correlation[3,1],2)))
+    geom_smooth(method=lm, colors="blue") +
+    geom_text(x=0.03, y=-0.025, size=5, label=paste0("Correlation = ", as.character(round(correlation[3,1],2))))
 ```
 
 We can see apparently linear relationship between them. 

@@ -2,6 +2,17 @@ Analysing Stock Data Collected from Polygon.io API
 ================
 Fang Wu
 
+-   [Required Packages](#required-packages)
+-   [Define API Interaction Functions and Query
+    Data](#define-api-interaction-functions-and-query-data)
+    -   [Reference Data Endpoints](#reference-data-endpoints)
+    -   [Market Data Endpoints](#market-data-endpoints)
+-   [EDA](#eda)
+    -   [Analyzing Close Price](#analyzing-close-price)
+    -   [Simple returns](#simple-returns)
+    -   [Simple Moving Average](#simple-moving-average)
+    -   [Relationship](#relationship)
+
 This document is a vignette to show how I collect stock data from
 Polygon.io API and perform EDA on stock data. In the first session, I am
 going to build a few user friendly functions in order to interact with
@@ -285,6 +296,23 @@ result <- parLapply(cluster, X=tickers_interest, fun=stock_price, multiplier="1"
 reduce(result, bind_rows)
 ```
 
+    ## # A tibble: 24 x 7
+    ##    ticker date       close highest
+    ##    <chr>  <date>     <dbl>   <dbl>
+    ##  1 AAPL   2022-01-01 175.     183.
+    ##  2 AAPL   2022-02-01 165.     177.
+    ##  3 AAPL   2022-03-01 175.     180.
+    ##  4 AAPL   2022-04-01 158.     178.
+    ##  5 AAPL   2022-05-01 149.     166.
+    ##  6 AAPL   2022-06-01 138.     152.
+    ##  7 ZM     2022-01-01 154.     185.
+    ##  8 ZM     2022-02-01 133.     156.
+    ##  9 ZM     2022-03-01 117.     136 
+    ## 10 ZM     2022-04-01  99.6    126.
+    ## # ... with 14 more rows, and 3 more
+    ## #   variables: lowest <dbl>,
+    ## #   open <dbl>, volume <dbl>
+
 -   Grouped Daily (Bars)
 
 This endpoint provides the daily open, high, low, and close price
@@ -352,7 +380,7 @@ g + geom_line() +
     scale_x_date(date_labels = "%b %y", date_breaks="2 months") 
 ```
 
-![](README_files/figure-gfm/unnamed-chunk-9-1.png)<!-- -->
+![](README_files/figure-gfm/close%20trend-1.png)<!-- -->
 
 This plot clearly shows that Google’s stock is much more expensive than
 the others’. ZM’s price continues to drop down. GOOGL and TSLA’s price
@@ -392,7 +420,7 @@ g + geom_boxplot(aes(color=ticker)) +
     labs(y="close price", title="Boxplot Accross Tickers") 
 ```
 
-![](README_files/figure-gfm/unnamed-chunk-11-1.png)<!-- -->
+![](README_files/figure-gfm/close%20boxplot-1.png)<!-- -->
 
 The boxes of GOOGL and TSLA are similar, while ZM’s box is smaller.
 Meanwhile, the box of AAPL is like a line in the plot, which shows that
@@ -441,19 +469,19 @@ return_data
 Now let’s calculate the descriptive statistics of returns.
 
 ``` r
-return_table <- return_data %>% group_by(ticker) %>% summarise(q1=quantile(close, 0.25), mean=mean(close), median=median(close), q3=quantile(close, 0.75), sd=sd(close), IQR=IQR(close))
+return_table <- return_data %>% group_by(ticker) %>% summarise(q1=quantile(return, 0.25, na.rm=TRUE), mean=mean(return, na.rm=TRUE), median=median(return, na.rm=TRUE), q3=quantile(return, 0.75, na.rm=TRUE), sd=sd(return, na.rm=TRUE), IQR=IQR(return, na.rm=TRUE))
 return_table
 ```
 
     ## # A tibble: 4 x 7
-    ##   ticker    q1  mean median    q3
-    ##   <chr>  <dbl> <dbl>  <dbl> <dbl>
-    ## 1 AAPL    146.  155.   152.  167.
-    ## 2 GOOGL  2539. 2682.  2725. 2843.
-    ## 3 TSLA    711.  859.   842. 1009.
-    ## 4 ZM      123.  225.   207.  315.
-    ## # ... with 2 more variables:
-    ## #   sd <dbl>, IQR <dbl>
+    ##   ticker       q1       mean    median
+    ##   <chr>     <dbl>      <dbl>     <dbl>
+    ## 1 AAPL   -0.00910  0.000866   0.00114 
+    ## 2 GOOGL  -0.00922 -0.0000121  0.000963
+    ## 3 TSLA   -0.0174   0.00136    0.00201 
+    ## 4 ZM     -0.0244  -0.00375   -0.00476 
+    ## # ... with 3 more variables:
+    ## #   q3 <dbl>, sd <dbl>, IQR <dbl>
 
 I want to plot this table to show difference visibly.
 
@@ -463,7 +491,7 @@ g + geom_bar(aes(y=mean), stat="identity", fill="dark blue")+
     labs(y="mean return", title="Mean of the Daily Returns")
 ```
 
-![](README_files/figure-gfm/unnamed-chunk-14-1.png)<!-- -->
+![](README_files/figure-gfm/mean%20return%20bar%20chart-1.png)<!-- -->
 
 The mean return of GOOGL over the past year is so close to 0, while it
 is negative for ZM and positive for AAPL and TSLA.
@@ -474,7 +502,7 @@ g + geom_bar(aes(y=sd), stat="identity", fill="dark blue")+
     labs(y="return's sd", title="Standard Deviation of the Daily Returns")
 ```
 
-![](README_files/figure-gfm/unnamed-chunk-15-1.png)<!-- -->
+![](README_files/figure-gfm/return%20sd%20bar%20chart-1.png)<!-- -->
 
 Which is very surprising is that ZM has a relatively high deviation and
 GOOGL has a relative low deviation in terms of returns.
@@ -488,7 +516,7 @@ g + geom_boxplot(aes(color=ticker)) +
     labs(y="return", title="Boxplot Accross Tickers") 
 ```
 
-![](README_files/figure-gfm/unnamed-chunk-16-1.png)<!-- -->
+![](README_files/figure-gfm/bocplot%20of%20return-1.png)<!-- -->
 
 From this plot we can see clearly that the medians are all pretty close
 to zero, and the variations are similar between AAPL and GOOGL, TSLA and
@@ -531,7 +559,7 @@ g + geom_histogram( fill="darkblue") +
     facet_wrap(~ticker)
 ```
 
-![](README_files/figure-gfm/unnamed-chunk-18-1.png)<!-- -->
+![](README_files/figure-gfm/return%20histogram-1.png)<!-- -->
 
 As expected, lots of activity appear in the middle, however the plots
 spread out to the left and right far for TSLA and ZM. These two plots
@@ -547,7 +575,7 @@ g + geom_line(aes(color=ticker)) +
     scale_x_date(date_labels = "%b %y", date_breaks="2 months")
 ```
 
-![](README_files/figure-gfm/unnamed-chunk-19-1.png)<!-- -->
+![](README_files/figure-gfm/returns%20trend-1.png)<!-- -->
 
 We can find some large events, though this is not a neat plot. I am
 going to make subplot by ticker to make more clear comparison.
@@ -561,7 +589,7 @@ g + geom_line(color="dark blue") +
     scale_x_date(date_labels = "%b %y", date_breaks="2 months")
 ```
 
-![](README_files/figure-gfm/unnamed-chunk-20-1.png)<!-- -->
+![](README_files/figure-gfm/subplot-1.png)<!-- -->
 
 From this plot, we can see that the daily returns jumps around a lot as
 we might expect. They basically cluster in around zero. There are some
@@ -634,7 +662,7 @@ g + geom_line(aes(y=close, color="close")) +
     facet_wrap(~ticker, scales="free")
 ```
 
-![](README_files/figure-gfm/unnamed-chunk-22-1.png)<!-- -->
+![](README_files/figure-gfm/plot%20of%20moving%20mean-1.png)<!-- -->
 
 ``` r
     scale_x_date(date_labels = "%b %y", date_breaks="2 months")
@@ -664,10 +692,10 @@ g <- ggplot(return_data, aes(x=return, y=volume))
 g + geom_point(aes(color=ticker)) 
 ```
 
-![](README_files/figure-gfm/unnamed-chunk-23-1.png)<!-- --> We can see
-that days with larger absolute return values are more likely to have
-larger volume. But larger volumes don’t mean larger absolute return
-values.
+![](README_files/figure-gfm/relationship%20between%20volume%20and%20returns-1.png)<!-- -->
+We can see that days with larger absolute return values are more likely
+to have larger volume. But larger volumes don’t mean larger absolute
+return values.
 
 ### correlation between tickers’ returns
 
@@ -694,7 +722,7 @@ correlation
 corrplot(correlation, type="upper", tl.pos="lt")
 ```
 
-![](README_files/figure-gfm/unnamed-chunk-24-1.png)<!-- -->
+![](README_files/figure-gfm/correlation%20of%20different%20tickers%20return-1.png)<!-- -->
 
 What is very interesting is that all these four tickers’ returns have
 positive correlation. AAPL and GOOGL look like strong positive
@@ -703,10 +731,10 @@ correlation.
 ``` r
 g <- ggplot(new_wider, aes(x=AAPL, y=GOOGL))
 g + geom_point(position="jitter") +
-    geom_smooth(method=lm, col="blue") +
-    geom_text(x=0.03, y=-0.025, size=5, label=paste0("Correlation = ", round(correlation[3,1],2)))
+    geom_smooth(method=lm, colors="blue") +
+    geom_text(x=0.03, y=-0.025, size=5, label=paste0("Correlation = ", as.character(round(correlation[3,1],2))))
 ```
 
-![](README_files/figure-gfm/unnamed-chunk-25-1.png)<!-- -->
+![](README_files/figure-gfm/AAPL%20and%20GOOGL%20relation%20line-1.png)<!-- -->
 
 We can see apparently linear relationship between them.
