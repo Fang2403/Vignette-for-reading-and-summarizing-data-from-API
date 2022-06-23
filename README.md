@@ -272,161 +272,8 @@ get_price(tickers=c("AAPL","ZM"), num="1",span="month",start="2021-01-01", end="
 #set up parallel process
 cluster <- makeCluster(detectCores()-1)
 clusterExport(cluster, list("stock_price", "fromJSON", "rawToChar"))
-clusterEvalQ(cluster, library(tidyverse))
-```
-
-    ## [[1]]
-    ##  [1] "forcats"   "stringr"  
-    ##  [3] "dplyr"     "purrr"    
-    ##  [5] "readr"     "tidyr"    
-    ##  [7] "tibble"    "ggplot2"  
-    ##  [9] "tidyverse" "stats"    
-    ## [11] "graphics"  "grDevices"
-    ## [13] "utils"     "datasets" 
-    ## [15] "methods"   "base"     
-    ## 
-    ## [[2]]
-    ##  [1] "forcats"   "stringr"  
-    ##  [3] "dplyr"     "purrr"    
-    ##  [5] "readr"     "tidyr"    
-    ##  [7] "tibble"    "ggplot2"  
-    ##  [9] "tidyverse" "stats"    
-    ## [11] "graphics"  "grDevices"
-    ## [13] "utils"     "datasets" 
-    ## [15] "methods"   "base"     
-    ## 
-    ## [[3]]
-    ##  [1] "forcats"   "stringr"  
-    ##  [3] "dplyr"     "purrr"    
-    ##  [5] "readr"     "tidyr"    
-    ##  [7] "tibble"    "ggplot2"  
-    ##  [9] "tidyverse" "stats"    
-    ## [11] "graphics"  "grDevices"
-    ## [13] "utils"     "datasets" 
-    ## [15] "methods"   "base"     
-    ## 
-    ## [[4]]
-    ##  [1] "forcats"   "stringr"  
-    ##  [3] "dplyr"     "purrr"    
-    ##  [5] "readr"     "tidyr"    
-    ##  [7] "tibble"    "ggplot2"  
-    ##  [9] "tidyverse" "stats"    
-    ## [11] "graphics"  "grDevices"
-    ## [13] "utils"     "datasets" 
-    ## [15] "methods"   "base"     
-    ## 
-    ## [[5]]
-    ##  [1] "forcats"   "stringr"  
-    ##  [3] "dplyr"     "purrr"    
-    ##  [5] "readr"     "tidyr"    
-    ##  [7] "tibble"    "ggplot2"  
-    ##  [9] "tidyverse" "stats"    
-    ## [11] "graphics"  "grDevices"
-    ## [13] "utils"     "datasets" 
-    ## [15] "methods"   "base"     
-    ## 
-    ## [[6]]
-    ##  [1] "forcats"   "stringr"  
-    ##  [3] "dplyr"     "purrr"    
-    ##  [5] "readr"     "tidyr"    
-    ##  [7] "tibble"    "ggplot2"  
-    ##  [9] "tidyverse" "stats"    
-    ## [11] "graphics"  "grDevices"
-    ## [13] "utils"     "datasets" 
-    ## [15] "methods"   "base"     
-    ## 
-    ## [[7]]
-    ##  [1] "forcats"   "stringr"  
-    ##  [3] "dplyr"     "purrr"    
-    ##  [5] "readr"     "tidyr"    
-    ##  [7] "tibble"    "ggplot2"  
-    ##  [9] "tidyverse" "stats"    
-    ## [11] "graphics"  "grDevices"
-    ## [13] "utils"     "datasets" 
-    ## [15] "methods"   "base"
-
-``` r
-clusterEvalQ(cluster, library(httr))
-```
-
-    ## [[1]]
-    ##  [1] "httr"      "forcats"  
-    ##  [3] "stringr"   "dplyr"    
-    ##  [5] "purrr"     "readr"    
-    ##  [7] "tidyr"     "tibble"   
-    ##  [9] "ggplot2"   "tidyverse"
-    ## [11] "stats"     "graphics" 
-    ## [13] "grDevices" "utils"    
-    ## [15] "datasets"  "methods"  
-    ## [17] "base"     
-    ## 
-    ## [[2]]
-    ##  [1] "httr"      "forcats"  
-    ##  [3] "stringr"   "dplyr"    
-    ##  [5] "purrr"     "readr"    
-    ##  [7] "tidyr"     "tibble"   
-    ##  [9] "ggplot2"   "tidyverse"
-    ## [11] "stats"     "graphics" 
-    ## [13] "grDevices" "utils"    
-    ## [15] "datasets"  "methods"  
-    ## [17] "base"     
-    ## 
-    ## [[3]]
-    ##  [1] "httr"      "forcats"  
-    ##  [3] "stringr"   "dplyr"    
-    ##  [5] "purrr"     "readr"    
-    ##  [7] "tidyr"     "tibble"   
-    ##  [9] "ggplot2"   "tidyverse"
-    ## [11] "stats"     "graphics" 
-    ## [13] "grDevices" "utils"    
-    ## [15] "datasets"  "methods"  
-    ## [17] "base"     
-    ## 
-    ## [[4]]
-    ##  [1] "httr"      "forcats"  
-    ##  [3] "stringr"   "dplyr"    
-    ##  [5] "purrr"     "readr"    
-    ##  [7] "tidyr"     "tibble"   
-    ##  [9] "ggplot2"   "tidyverse"
-    ## [11] "stats"     "graphics" 
-    ## [13] "grDevices" "utils"    
-    ## [15] "datasets"  "methods"  
-    ## [17] "base"     
-    ## 
-    ## [[5]]
-    ##  [1] "httr"      "forcats"  
-    ##  [3] "stringr"   "dplyr"    
-    ##  [5] "purrr"     "readr"    
-    ##  [7] "tidyr"     "tibble"   
-    ##  [9] "ggplot2"   "tidyverse"
-    ## [11] "stats"     "graphics" 
-    ## [13] "grDevices" "utils"    
-    ## [15] "datasets"  "methods"  
-    ## [17] "base"     
-    ## 
-    ## [[6]]
-    ##  [1] "httr"      "forcats"  
-    ##  [3] "stringr"   "dplyr"    
-    ##  [5] "purrr"     "readr"    
-    ##  [7] "tidyr"     "tibble"   
-    ##  [9] "ggplot2"   "tidyverse"
-    ## [11] "stats"     "graphics" 
-    ## [13] "grDevices" "utils"    
-    ## [15] "datasets"  "methods"  
-    ## [17] "base"     
-    ## 
-    ## [[7]]
-    ##  [1] "httr"      "forcats"  
-    ##  [3] "stringr"   "dplyr"    
-    ##  [5] "purrr"     "readr"    
-    ##  [7] "tidyr"     "tibble"   
-    ##  [9] "ggplot2"   "tidyverse"
-    ## [11] "stats"     "graphics" 
-    ## [13] "grDevices" "utils"    
-    ## [15] "datasets"  "methods"  
-    ## [17] "base"
-
-``` r
+void <- capture.output(clusterEvalQ(cluster,{library(tidyverse)}))
+void <- capture.output(clusterEvalQ(cluster,{library(httr)}))
 result <- parLapply(cluster, X=tickers_interest, fun=stock_price, multiplier="1",
                          timespan="month",from="2022-01-01", to="2022-06-01")
 ```
@@ -437,23 +284,6 @@ result <- parLapply(cluster, X=tickers_interest, fun=stock_price, multiplier="1"
 ``` r
 reduce(result, bind_rows)
 ```
-
-    ## # A tibble: 24 x 7
-    ##    ticker date       close highest
-    ##    <chr>  <date>     <dbl>   <dbl>
-    ##  1 AAPL   2022-01-01 175.     183.
-    ##  2 AAPL   2022-02-01 165.     177.
-    ##  3 AAPL   2022-03-01 175.     180.
-    ##  4 AAPL   2022-04-01 158.     178.
-    ##  5 AAPL   2022-05-01 149.     166.
-    ##  6 AAPL   2022-06-01 138.     152.
-    ##  7 ZM     2022-01-01 154.     185.
-    ##  8 ZM     2022-02-01 133.     156.
-    ##  9 ZM     2022-03-01 117.     136 
-    ## 10 ZM     2022-04-01  99.6    126.
-    ## # ... with 14 more rows, and 3 more
-    ## #   variables: lowest <dbl>,
-    ## #   open <dbl>, volume <dbl>
 
 -   Grouped Daily (Bars)
 
@@ -522,7 +352,7 @@ g + geom_line() +
     scale_x_date(date_labels = "%b %y", date_breaks="2 months") 
 ```
 
-![](README_files/figure-gfm/unnamed-chunk-14-1.png)<!-- -->
+![](README_files/figure-gfm/unnamed-chunk-9-1.png)<!-- -->
 
 This plot clearly shows that Google’s stock is much more expensive than
 the others’. ZM’s price continues to drop down. GOOGL and TSLA’s price
@@ -562,7 +392,7 @@ g + geom_boxplot(aes(color=ticker)) +
     labs(y="close price", title="Boxplot Accross Tickers") 
 ```
 
-![](README_files/figure-gfm/unnamed-chunk-16-1.png)<!-- -->
+![](README_files/figure-gfm/unnamed-chunk-11-1.png)<!-- -->
 
 The boxes of GOOGL and TSLA are similar, while ZM’s box is smaller.
 Meanwhile, the box of AAPL is like a line in the plot, which shows that
@@ -633,7 +463,7 @@ g + geom_bar(aes(y=mean), stat="identity", fill="dark blue")+
     labs(y="mean return", title="Mean of the Daily Returns")
 ```
 
-![](README_files/figure-gfm/unnamed-chunk-19-1.png)<!-- -->
+![](README_files/figure-gfm/unnamed-chunk-14-1.png)<!-- -->
 
 The mean return of GOOGL over the past year is so close to 0, while it
 is negative for ZM and positive for AAPL and TSLA.
@@ -644,7 +474,7 @@ g + geom_bar(aes(y=sd), stat="identity", fill="dark blue")+
     labs(y="return's sd", title="Standard Deviation of the Daily Returns")
 ```
 
-![](README_files/figure-gfm/unnamed-chunk-20-1.png)<!-- -->
+![](README_files/figure-gfm/unnamed-chunk-15-1.png)<!-- -->
 
 Which is very surprising is that ZM has a relatively high deviation and
 GOOGL has a relative low deviation in terms of returns.
@@ -658,7 +488,7 @@ g + geom_boxplot(aes(color=ticker)) +
     labs(y="return", title="Boxplot Accross Tickers") 
 ```
 
-![](README_files/figure-gfm/unnamed-chunk-21-1.png)<!-- -->
+![](README_files/figure-gfm/unnamed-chunk-16-1.png)<!-- -->
 
 From this plot we can see clearly that the medians are all pretty close
 to zero, and the variations are similar between AAPL and GOOGL, TSLA and
@@ -701,7 +531,7 @@ g + geom_histogram( fill="darkblue") +
     facet_wrap(~ticker)
 ```
 
-![](README_files/figure-gfm/unnamed-chunk-23-1.png)<!-- -->
+![](README_files/figure-gfm/unnamed-chunk-18-1.png)<!-- -->
 
 As expected, lots of activity appear in the middle, however the plots
 spread out to the left and right far for TSLA and ZM. These two plots
@@ -717,7 +547,7 @@ g + geom_line(aes(color=ticker)) +
     scale_x_date(date_labels = "%b %y", date_breaks="2 months")
 ```
 
-![](README_files/figure-gfm/unnamed-chunk-24-1.png)<!-- -->
+![](README_files/figure-gfm/unnamed-chunk-19-1.png)<!-- -->
 
 We can find some large events, though this is not a neat plot. I am
 going to make subplot by ticker to make more clear comparison.
@@ -731,7 +561,7 @@ g + geom_line(color="dark blue") +
     scale_x_date(date_labels = "%b %y", date_breaks="2 months")
 ```
 
-![](README_files/figure-gfm/unnamed-chunk-25-1.png)<!-- -->
+![](README_files/figure-gfm/unnamed-chunk-20-1.png)<!-- -->
 
 From this plot, we can see that the daily returns jumps around a lot as
 we might expect. They basically cluster in around zero. There are some
@@ -804,7 +634,7 @@ g + geom_line(aes(y=close, color="close")) +
     facet_wrap(~ticker, scales="free")
 ```
 
-![](README_files/figure-gfm/unnamed-chunk-27-1.png)<!-- -->
+![](README_files/figure-gfm/unnamed-chunk-22-1.png)<!-- -->
 
 ``` r
     scale_x_date(date_labels = "%b %y", date_breaks="2 months")
@@ -834,7 +664,7 @@ g <- ggplot(return_data, aes(x=return, y=volume))
 g + geom_point(aes(color=ticker)) 
 ```
 
-![](README_files/figure-gfm/unnamed-chunk-28-1.png)<!-- --> We can see
+![](README_files/figure-gfm/unnamed-chunk-23-1.png)<!-- --> We can see
 that days with larger absolute return values are more likely to have
 larger volume. But larger volumes don’t mean larger absolute return
 values.
@@ -864,7 +694,7 @@ correlation
 corrplot(correlation, type="upper", tl.pos="lt")
 ```
 
-![](README_files/figure-gfm/unnamed-chunk-29-1.png)<!-- -->
+![](README_files/figure-gfm/unnamed-chunk-24-1.png)<!-- -->
 
 What is very interesting is that all these four tickers’ returns have
 positive correlation. AAPL and GOOGL look like strong positive
@@ -877,6 +707,6 @@ g + geom_point(position="jitter") +
     geom_text(x=0.03, y=-0.025, size=5, label=paste0("Correlation = ", round(correlation[3,1],2)))
 ```
 
-![](README_files/figure-gfm/unnamed-chunk-30-1.png)<!-- -->
+![](README_files/figure-gfm/unnamed-chunk-25-1.png)<!-- -->
 
 We can see apparently linear relationship between them.

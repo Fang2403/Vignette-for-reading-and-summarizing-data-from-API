@@ -182,12 +182,12 @@ get_price <- function(tickers, num, span, start, end){
 get_price(tickers=c("AAPL","ZM"), num="1",span="month",start="2021-01-01", end="2022-06-01" )
 ```
 
-```{r}
+```{r, results='hide'}
 #set up parallel process
 cluster <- makeCluster(detectCores()-1)
 clusterExport(cluster, list("stock_price", "fromJSON", "rawToChar"))
-clusterEvalQ(cluster, library(tidyverse))
-clusterEvalQ(cluster, library(httr))
+void <- capture.output(clusterEvalQ(cluster,{library(tidyverse)}))
+void <- capture.output(clusterEvalQ(cluster,{library(httr)}))
 result <- parLapply(cluster, X=tickers_interest, fun=stock_price, multiplier="1",
                          timespan="month",from="2022-01-01", to="2022-06-01")
 reduce(result, bind_rows)
