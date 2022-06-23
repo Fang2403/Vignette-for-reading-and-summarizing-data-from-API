@@ -148,8 +148,8 @@ stock_price <- function(ticker, multiplier, timespan, from, to){
 }
 
 # check
-AAPL_price <- stock_price("AAPL", "1", "day", "2021-06-01", "2022-06-01")
-AAPL_price
+#AAPL_price <- stock_price("AAPL", "1", "day", "2021-06-01", "2022-06-01")
+#AAPL_price
 ```
 
 ```{r}
@@ -194,8 +194,8 @@ one_day <- function(date){
     return(date_info)
 }
 #check function
-yesterday <- one_day(date="2022-06-21")
-yesterday
+#yesterday <- one_day(date="2022-06-21")
+#yesterday
 ```
 
 
@@ -385,6 +385,6 @@ g + geom_point(aes(color=ticker))
 Relationship between volume and returns
 
 ```{r}
-g <- ggplot(return_data, aes(x=returns, y=volume))
+g <- ggplot(return_data, aes(x=return, y=volume))
 g + geom_point(aes(color=ticker)) 
 ```
