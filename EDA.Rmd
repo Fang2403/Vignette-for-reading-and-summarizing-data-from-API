@@ -67,11 +67,11 @@ type_info <- function(class=NULL, locale=NULL){
 }
 #check the function to query all tyoes in US stock market 
 #type_info(class="options")
-raw <- GET("https://api.polygon.io/v3/reference/tickers/types?asset_class=fx&apiKey=dJT0WQZ7GwH45bAZ8TBZT3KusMgjNJM2")
-str(raw)
-data_list <- fromJSON(rawToChar(raw$content))
-str(data_list)
-data_list$results
+#raw <- GET("https://api.polygon.io/v3/reference/tickers/types?asset_class=fx&apiKey=dJT0WQZ7GwH45bAZ8TBZT3KusMgjNJM2")
+#str(raw)
+#data_list <- fromJSON(rawToChar(raw$content))
+#str(data_list)
+#data_list$results
 
 type_info()
 ```
@@ -163,9 +163,6 @@ get_price <- function(tickers, num, span, start, end){
                          timespan=span,from=start, to=end) %>% reduce(bind_rows)
     return(stock_data)
 }
-
-#check
-get_price(c("AAPL","ZM", "GOOGL"), "1", "day", "2022-01-01", "2022-06-01")
 ```
 
 Or put it in parallel computing
