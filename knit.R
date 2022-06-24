@@ -1,1 +1,1 @@
-rmarkdown::render(input="EDA.Rmd", output_file="README.md", output_format="github_document", output_options=list(html_preview=FALSE, toc=TRUE, toc_depth=2, df_print="paged"))
+rmarkdown::render(input="EDA.Rmd", output_file="README.md", output_format="github_document", output_options=list(html_preview=FALSE, toc=TRUE, toc_depth=2))
