@@ -3,22 +3,23 @@ Analysing Stock Data Collected from Polygon.io API
 Fang Wu
 
 -   [Required Packages](#required-packages)
--   [Define API Interaction Functions and Query
-    Data](#define-api-interaction-functions-and-query-data)
+-   [Define User-friendly Functions to Query
+    Data](#define-user-friendly-functions-to-query-data)
     -   [Reference Data Endpoints](#reference-data-endpoints)
     -   [Market Data Endpoints](#market-data-endpoints)
 -   [EDA](#eda)
-    -   [Analyzing Close Price](#analyzing-close-price)
-    -   [Simple returns](#simple-returns)
-    -   [Simple Moving Average](#simple-moving-average)
-    -   [Relationship](#relationship)
+    -   [Analysis on Close Price](#analysis-on-close-price)
+    -   [Analysis on Simple Returns](#analysis-on-simple-returns)
+    -   [Analysis on Simple Moving
+        Average](#analysis-on-simple-moving-average)
+    -   [Relationships](#relationships)
 
-This document is a vignette to show how I collect stock data from
-Polygon.io API and perform EDA on stock data. In the first session, I am
-going to build a few user friendly functions in order to interact with
-Polygon API and retrieve well-formatted data. In the second session, I
-am going to perform a basic exploratory data analysis (EDA) on the data
-to find some interesting trends and relationship.
+This document is a vignette to explain how I collect and perform basic
+EDA on stock data from Polygon.io API. In the first session, I built a
+few user-friendly functions to interact with the Polygon API to query,
+parse, and return well-formatted data. In the second session, I
+performed a basic exploratory data analysis (EDA) on historical stock
+data for companies – Apple, Google, Tesla, and Zoom.
 
 # Required Packages
 
@@ -34,13 +35,13 @@ I used the following packages to interact with API and do EDA:
 
 -   lubridate: converting string ‘date’ to R date object.
 
--   zoo: using funciton `rollmean()` to calculate the moving price.
+-   zoo: using function `rollmean()` to calculate the moving price.
 
--   parallel: seting up parallel computing.
+-   parallel: setting up parallel computing.
 
--   tidyr: changing the shapel of the tibble.
+-   tidyr: changing the shape of the tibble.
 
--   corrplot: ploting correlation between variables.
+-   GGally: plotting correlation between variables.
 
 ``` r
 library(httr)
@@ -52,28 +53,31 @@ library(zoo)
 library(parallel)
 library(tidyr)
 library(corrplot)
+library(GGally)
 ```
 
-# Define API Interaction Functions and Query Data
+# Define User-friendly Functions to Query Data
 
 The Polygon.io API provides REST endpoints that let companies and
 developers query the latest market data for stocks, options, forex, and
 crypto. For each part, there are market data endpoints and reference
-data endpoints. In this vignette, I will focus on stocks.
+data endpoints. In this vignette, I will focus on stock market.
 
 In order to interact with Polygon API and return well-formatted data, I
-define some user friendly functions. I am going to query adjusted price
-as default in the following functions, since adjusted price incorporates
-events like splits and dividends distribution, which can affect the
-series.
+am going to define some user-friendly functions, which means that users
+can customize their query to return specific data. I am going to query
+adjusted price as default in the following functions, since adjusted
+price incorporates events like splits and dividends distribution, which
+can affect the series.
 
 ## Reference Data Endpoints
 
 -   Ticker Types
 
 All ticker types that Polygon.io has are listed in this endpoints. I
-define a function to connect with this endpoints to return a tibble with
-type description, code used in Polygon.io, asset_class, and locale.
+define a function called `type_info` to connect with this endpoints to
+return a tibble with type description, code used in Polygon.io,
+asset_class, and locale.
 
 ``` r
 type_info <- function(class=NULL, locale=NULL){
@@ -86,13 +90,6 @@ type_info <- function(class=NULL, locale=NULL){
     types <- types_data$results %>% as_tibble() %>% rename(type=description )
     return(types)
 }
-
-#type_info(class="options")
-#raw <- GET("https://api.polygon.io/v3/reference/tickers/types?asset_class=fx&apiKey=dJT0WQZ7GwH45bAZ8TBZT3KusMgjNJM2")
-#str(raw)
-#data_list <- fromJSON(rawToChar(raw$content))
-#str(data_list)
-#data_list$results
 
 #check the function to query all types in US stock market 
 type_data <- type_info(class="stocks")
@@ -114,13 +111,13 @@ type_data
     ## 10 ADRW    America~ stocks      us    
     ## # ... with 11 more rows
 
-In this tibble, `code` is what Polygon.io uses to refer to `type`.
+In this tibble, `code` is what Polygon.io uses to refer to `type`. User
+can check up the abbreviation for each ticker type through this
+function.
 
-User can check up the abbreviation for each ticker type through this
-function. Then I would like to allow user use either abbreviation or
-full type name in other important market data query. I define another
-helper function to help user convert type name to code used in
-polygon.io.
+Then I define another helper function `convert_to_code` to help user
+convert type name to code used in polygon.io. So users can use either
+abbreviation or full type name in other data queries.
 
 ``` r
 convert_to_code <- function(text, class=NULL, locale=NULL){
@@ -140,12 +137,12 @@ ADRC
 
 -   Tickers
 
-We can query all ticker symbols which are supported by Polygon.io
-through this endpoints. I am going to define a function called
-`tickers_supported` to allow user specify the type of the tickers,
-market type, and if the tickers returned should be actively traded on
-the queried date. With the helper function `convert_to_code`, user don’t
-be required to type the abbreviation for the ticker type exactly.
+I am going to define a function called `tickers_supported` to query
+ticker symbols which are supported by Polygon.io. This function allow
+user specify the type of the tickers, market type, and if the tickers
+returned should be actively traded on the queried date. With the helper
+function `convert_to_code`, user can type the abbreviation for the
+ticker type or description.
 
 ``` r
 tickers_supported <- function(type=NULL, market=NULL, active=TRUE){
@@ -198,19 +195,15 @@ ADRC_tickers
 
 -   Aggregates (Bars)
 
-This endpoint provides aggregate bars for a stock over a given data
+This endpoint provides aggregate bars for a stock over a given date
 range in custom time window sizes.
 
-First I define a function `stock_price` to query data for one specific
-ticker and return a tibble with more meaningful column names. Then I
-combine functions `lapply` and `stock_price` to generate a tibble for
-multiple specified tickers. Finally, I provide a wrapper function and a
-parallel process to do the same work.
-
-In this vignette I want to explore daily stock price changes for
-companies Apply, Google, Tesla, and Zoom from 2001-06-01 to 2022-06-01.
-So I generate the goal tibble named *stock_data* after defining
-funcitons.
+First I define a function called `stock_price` to query data for one
+specific ticker and return a tibble with more meaningful column names.
+User can customize the date range and time window in this function. Then
+I use function `lapply` and `stock_price` to generate a tibble for
+multiple specified tickers. A wrapper function and parallel computing
+process are provided at the end.
 
 ``` r
 stock_price <- function(ticker, multiplier, timespan, from, to){
@@ -231,12 +224,29 @@ stock_price <- function(ticker, multiplier, timespan, from, to){
 }
 
 # check to query one ticker data
-#AAPL_price <- stock_price("AAPL", "1", "day", "2021-06-01", "2022-06-01")
-#AAPL_price
+AAPL_price <- stock_price("AAPL", "1", "day", "2021-06-01", "2022-06-01")
+AAPL_price
 ```
 
+    ## # A tibble: 254 x 7
+    ##    ticker date       close highest
+    ##    <chr>  <date>     <dbl>   <dbl>
+    ##  1 AAPL   2021-06-01  124.    125.
+    ##  2 AAPL   2021-06-02  125.    125.
+    ##  3 AAPL   2021-06-03  124.    125.
+    ##  4 AAPL   2021-06-04  126.    126.
+    ##  5 AAPL   2021-06-07  126.    126.
+    ##  6 AAPL   2021-06-08  127.    128.
+    ##  7 AAPL   2021-06-09  127.    128.
+    ##  8 AAPL   2021-06-10  126.    128.
+    ##  9 AAPL   2021-06-11  127.    127.
+    ## 10 AAPL   2021-06-14  130.    131.
+    ## # ... with 244 more rows, and 3 more
+    ## #   variables: lowest <dbl>,
+    ## #   open <dbl>, volume <dbl>
+
 ``` r
-# generate goal tibble
+# generate tibble about multiple companies
 tickers_interest=c("AAPL","ZM","GOOGL","TSLA")
 stock_data <- lapply(X=tickers_interest, FUN=stock_price, multiplier="1",
                          timespan="day",from="2021-06-01", to="2022-06-01") %>%
@@ -261,8 +271,7 @@ stock_data
     ## #   more variables: lowest <dbl>,
     ## #   open <dbl>, volume <dbl>
 
-Other methods to do the same task: a wrapper function or parallel
-computing process.
+Wrapper function to get the same data.
 
 ``` r
 # wrapper function
@@ -278,6 +287,8 @@ get_price(tickers=c("AAPL","ZM"), num="1",span="month",start="2021-01-01", end="
     ## Error in `chr_as_locations()`:
     ## ! Can't rename columns that don't exist.
     ## x Column `c` doesn't exist.
+
+Parallel computing process to get the same data.
 
 ``` r
 #set up parallel process
@@ -318,8 +329,8 @@ reduce(result, bind_rows)
 This endpoint provides the daily open, high, low, and close price
 information for the entire stocks/equities markets.
 
-I am going to define function named `one_day` to connect the API and
-return a tibble. Users can specify the date.
+I am going to define a function named `one_day` to connect the API and
+return a tibble. Users can specify the date through this funciton.
 
 ``` r
 one_day <- function(date){
@@ -362,15 +373,16 @@ Jun21
 
 # EDA
 
-I have queried daily price data from 2001-06-01 to 2022-06-01 for
-companies Apple, zoom, Google and Tesla. Now I would perform basic EDA
-on close price, returns, and moving price to explore some interesting
-trends and relationships.
+I want to explore daily stock price changes for companies Apply, Google,
+Tesla, and Zoom from 2001-06-01 to 2022-06-01. So I will use tibble
+*stock_data* gained in the last session.
 
-## Analyzing Close Price
+I am going to perform basic EDA on close price, returns, and moving
+price to explore some interesting trends and relationships.
 
-First, I want to find some trends of the daily close price of these four
-companies.
+## Analysis on Close Price
+
+Let’s find some trends of the daily close price.
 
 ``` r
 g <- ggplot(stock_data, aes(x=date, y=close, color=ticker))
@@ -382,14 +394,16 @@ g + geom_line() +
 
 ![](README_files/figure-gfm/close%20trend-1.png)<!-- -->
 
-This plot clearly shows that Google’s stock is much more expensive than
-the others’. ZM’s price continues to drop down. GOOGL and TSLA’s price
-waved a lot in the last year. However, AAPL’s price appears to not
-deviate much in the plot. Because of the large difference, I am not sure
-if this represents what it truly is.
+We can find: Google’s stock is much more expensive than the others’;
+ZM’s close price continued to drop down; GOOGL and TSLA’s close price
+waved a lot in the past year; AAPL’s price appears to not deviate much
+in the plot;
 
-Now I am going to get some descriptive statistics for the close price
-movement. Compare their standard deviation and IQR to check their
+Because of the large price difference, I am not sure whether the
+stability of AAPL is ture.
+
+In addition, I am going to get some descriptive statistics for the close
+price movement. Compare their standard deviation and IQR to check their
 volatility.
 
 ``` r
@@ -411,28 +425,28 @@ In this table we can find that the standard deviation and IQR of AAPL is
 indeed much lower than the others’. The mean and median of GOOGL is
 indeed much higher than the others.
 
-We can also check the spread of these tickers by the following boxplot.
+We can also check the spread by the following box plot.
 
 ``` r
 g <- ggplot(stock_data, aes(x=ticker, y=close))
 g + geom_boxplot(aes(color=ticker)) +
     theme(plot.title = element_text(hjust = 0.5)) +
-    labs(y="close price", title="Boxplot Accross Tickers") 
+    labs(y="close price", title="Box Plot for Close Price Across Tickers") 
 ```
 
 ![](README_files/figure-gfm/close%20boxplot-1.png)<!-- -->
 
 The boxes of GOOGL and TSLA are similar, while ZM’s box is smaller.
-Meanwhile, the box of AAPL is like a line in the plot, which shows that
-close price of AAPL is very stable.
+Meanwhile, the box of AAPL is like a line in the plot, which indicates
+that close price of AAPL is very stable.
 
-## Simple returns
+## Analysis on Simple Returns
 
-To solve the problem caused by the high price of GOOGL, we will analyze
-the simple returns in stead of prices in this session.
+To solve the problem caused by the high price difference, we will
+analyze the simple returns instead of close prices in this part.
 
-First, I am going to define a function to add returns to the previous
-tibble.
+First, I am going to define a function to calculate returns and create a
+new tibble named `return_data.`
 
 ``` r
 get_returns <- function(data_set){
@@ -483,7 +497,7 @@ return_table
     ## # ... with 3 more variables:
     ## #   q3 <dbl>, sd <dbl>, IQR <dbl>
 
-I want to plot this table to show difference visibly.
+I want visulize this table in the followin gplot.
 
 ``` r
 g <- ggplot(return_table, aes(x=ticker))
@@ -504,28 +518,28 @@ g + geom_bar(aes(y=sd), stat="identity", fill="dark blue")+
 
 ![](README_files/figure-gfm/return%20sd%20bar%20chart-1.png)<!-- -->
 
-Which is very surprising is that ZM has a relatively high deviation and
-GOOGL has a relative low deviation in terms of returns.
+Which is very surprising to me is that ZM has a relatively high
+deviation and GOOGL has a relative low deviation in terms of returns.
 
-We can also check the spread of these tickers by the following boxplot.
+We also check the spreadin the box plot.
 
 ``` r
 g <- ggplot(return_data, aes(x=ticker, y=return))
 g + geom_boxplot(aes(color=ticker)) +
     theme(plot.title = element_text(hjust = 0.5)) +
-    labs(y="return", title="Boxplot Accross Tickers") 
+    labs(y="return", title="Box Plot for Returns Across Tickers") 
 ```
 
 ![](README_files/figure-gfm/bocplot%20of%20return-1.png)<!-- -->
 
 From this plot we can see clearly that the medians are all pretty close
 to zero, and the variations are similar between AAPL and GOOGL, TSLA and
-ZM separately. There are more outliers in TSLA and ZM than in AAPL and
-GOOGL. Two much lower values in the ZM may account for some part of its
-negative mean return.
+ZM separately. There seems like be more far away outliers in TSLA and ZM
+than in AAPL and GOOGL. Two much lower values in the ZM may account for
+some part of its negative mean return.
 
-Now I want to generate a variable `performance` to represent the level
-of the returns.
+Now I want to cut returns into different levels and check how many
+records fallen down within each level for each ticker.
 
 ``` r
 new <- return_data %>% mutate(rlev=cut(return, breaks=5, labels=c("very bad", "bad", "close 0", "good", "very good")))
@@ -545,9 +559,9 @@ table(new$ticker, new$rlev)
     ##   TSLA          7
     ##   ZM            6
 
-From this contingency table, we can find that there are both very bad
-and very good values in TSLA and ZM, which means the large daily changes
-exist.
+From this contingency table, we can find that there are both some very
+bad and very good values in TSLA and ZM, which indicates the large daily
+changes exist.
 
 Let’s check their histogram.
 
@@ -563,7 +577,7 @@ g + geom_histogram( fill="darkblue") +
 
 As expected, lots of activity appear in the middle, however the plots
 spread out to the left and right far for TSLA and ZM. These two plots
-have fat tails.
+have fat tails as indicated in the contingency table.
 
 Now let’s check the trend of the `return`.
 
@@ -577,8 +591,8 @@ g + geom_line(aes(color=ticker)) +
 
 ![](README_files/figure-gfm/returns%20trend-1.png)<!-- -->
 
-We can find some large events, though this is not a neat plot. I am
-going to make subplot by ticker to make more clear comparison.
+We can find some large events, though this is not a very neat plot. I am
+going to make subplot by ticker to give more clear comparison.
 
 ``` r
 g <- ggplot(return_data, aes(x=date, y=return))
@@ -592,14 +606,14 @@ g + geom_line(color="dark blue") +
 ![](README_files/figure-gfm/subplot-1.png)<!-- -->
 
 From this plot, we can see that the daily returns jumps around a lot as
-we might expect. They basically cluster in around zero. There are some
+we might expect. They basically cluster around zero. There are some
 unpredictable variation, especially some really large events in TSLA and
 ZM.
 
 To my surprise, GOOGL is much more stable here than in series of daily
 closing price plot.
 
-## Simple Moving Average
+## Analysis on Simple Moving Average
 
 A q-day moving average is, for a series
 ![x_t](https://latex.codecogs.com/png.image?%5Cdpi%7B110%7D&space;%5Cbg_white&space;x_t "x_t")
@@ -608,11 +622,10 @@ and a point in time t, the average of the past q days: that is, if
 denotes a moving average process,
 then:![MA_t^q=\\frac{1}{q}\\sum{x\_{t-1}}](https://latex.codecogs.com/png.image?%5Cdpi%7B110%7D&space;%5Cbg_white&space;MA_t%5Eq%3D%5Cfrac%7B1%7D%7Bq%7D%5Csum%7Bx_%7Bt-1%7D%7D "MA_t^q=\frac{1}{q}\sum{x_{t-1}}")
 
-This indicator is interesting because it helps to identify trends and
+This indicator is interesting because it helps us to identify trends and
 smooths noises from prices. That is, the bigger the days window for the
 moving average calculation, smaller is the MA responsiveness to price
-variation. The smaller the window, the faster MA adapts itself to
-changes. Now let’s calculate two moving averages for the stock prices
+variation. Now let’s calculate two moving averages for the stock prices
 series, one with 10 days window and the other with 30 days:
 
 ``` r
@@ -676,16 +689,20 @@ As what we expected, the line for mean30 is the most smooth one.
 
 From this plot we can see:
 
--   The moving mean of ZM continue to fall.
+-   The moving means and close price of ZM continued to fall.
 
--   In 2021, the moving mean of TSLA went up, then it started to wave in
-    a large range.
+-   AAPL had a big increase from Oct/2021 to Apr/2022.
+
+-   In 2021, the moving means of TSLA went up, then it started to wave
+    in a large range.
 
 -   From April 2022, all these four tickers started to fall down.
 
-## Relationship
+## Relationships
 
-### relationship between volume and returns
+-   relationship between volume and returns
+
+I guess there would be some relationship between volume and returns.
 
 ``` r
 g <- ggplot(return_data, aes(x=return, y=volume))
@@ -697,44 +714,30 @@ We can see that days with larger absolute return values are more likely
 to have larger volume. But larger volumes don’t mean larger absolute
 return values.
 
-### correlation between tickers’ returns
+-   correlation between tickers’ returns
 
 ``` r
 #change tibble to wider tibble with ticker code as column names
 new_wider <- return_data %>% select(ticker, date, return) %>% pivot_wider(names_from=ticker, values_from=return)
 #calculate correlation between tickers' returns
-correlation <- new_wider %>% select(-date) %>% filter(! is.na(AAPL)) %>% cor()
-correlation
-```
-
-    ##            AAPL        ZM     GOOGL
-    ## AAPL  1.0000000 0.4143254 0.7038413
-    ## ZM    0.4143254 1.0000000 0.3583102
-    ## GOOGL 0.7038413 0.3583102 1.0000000
-    ## TSLA  0.5521785 0.4678116 0.4653307
-    ##            TSLA
-    ## AAPL  0.5521785
-    ## ZM    0.4678116
-    ## GOOGL 0.4653307
-    ## TSLA  1.0000000
-
-``` r
-corrplot(correlation, type="upper", tl.pos="lt")
+GGally::ggpairs(new_wider%>%select(-date))
 ```
 
 ![](README_files/figure-gfm/correlation%20of%20different%20tickers%20return-1.png)<!-- -->
 
-What is very interesting is that all these four tickers’ returns have
-positive correlation. AAPL and GOOGL look like strong positive
-correlation.
+What is very interesting is that these four tickers’ returns have
+pair-wise positive correlation. Maybe this is because they are all top
+tech company ? Or this is a normal phenomenon in the past year?
+
+The correlation between AAPL and GOOGL is as high as 0.7.
 
 ``` r
 g <- ggplot(new_wider, aes(x=AAPL, y=GOOGL))
 g + geom_point(position="jitter") +
     geom_smooth(method=lm, colors="blue") +
-    geom_text(x=0.03, y=-0.025, size=5, label=paste0("Correlation = ", as.character(round(correlation[3,1],2))))
+    geom_text(x=0.03, y=-0.025, size=5, label="Correlation = 0.704")
 ```
 
 ![](README_files/figure-gfm/AAPL%20and%20GOOGL%20relation%20line-1.png)<!-- -->
 
-We can see apparently linear relationship between them.
+The linear regression line seems fit the data pretty well.
