@@ -314,7 +314,21 @@ Jun21 <- one_day(date="2022-06-21")
 Jun21
 ```
 
-    ## Error in eval(expr, envir, enclos): object 'Jun21' not found
+    ## # A tibble: 11,159 x 6
+    ##    T      open  close highest lowest
+    ##    <chr> <dbl>  <dbl>   <dbl>  <dbl>
+    ##  1 HEGD  17.0  17.1    17.1    17.0 
+    ##  2 BAMI  16.8  17.0    17.0    16.8 
+    ##  3 SYFpA 18.6  18.5    18.8    18.4 
+    ##  4 FAZ   29.6  29.8    30.2    29.3 
+    ##  5 BWG    8.5   8.53    8.57    8.43
+    ##  6 DFSV  22.7  22.8    22.9    22.4 
+    ##  7 MSN    0.63  0.639   0.642   0.62
+    ##  8 HAL   32.7  33.6    34.0    32.4 
+    ##  9 TWLO  85.1  85.2    87.9    84.3 
+    ## 10 PDOT   9.78  9.8     9.8     9.78
+    ## # ... with 11,149 more rows, and 1
+    ## #   more variable: volume <dbl>
 
 # EDA
 
