@@ -37,8 +37,6 @@ I used the following packages to interact with API and do EDA:
 
 -   zoo: using function `rollmean()` to calculate the moving price.
 
--   parallel: setting up parallel computing.
-
 -   tidyr: changing the shape of the tibble.
 
 -   GGally: plotting correlation between variables.
@@ -52,7 +50,6 @@ library(jsonlite)
 library(ggplot2)
 library(lubridate)
 library(zoo)
-library(parallel)
 library(tidyr)
 library(corrplot)
 library(GGally)
@@ -205,8 +202,7 @@ First I define a function called `stock_price` to query data for one
 specific ticker and return a tibble with more meaningful column names.
 User can customize the date range and time window in this function. Then
 I use function `lapply` and `stock_price` to generate a tibble for
-multiple specified tickers. A wrapper function and parallel computing
-process are provided at the end.
+multiple specified tickers. A wrapper function is provided at the end.
 
 ``` r
 stock_price <- function(ticker, multiplier, timespan, from, to){
@@ -284,48 +280,8 @@ get_price <- function(tickers, num, span, start, end){
     return(stock_data)
 }
 
-get_price(tickers=c("AAPL"), num="2",span="month",start="2021-01-01", end="2022-06-01" )
+#get_price(tickers=c("AAPL"), num="2",span="month",start="2021-01-01", end="2022-06-01" )
 ```
-
-    ## Error in `chr_as_locations()`:
-    ## ! Can't rename columns that don't exist.
-    ## x Column `c` doesn't exist.
-
-Parallel computing process to get the same data.
-
-``` r
-#set up parallel process
-cluster <- makeCluster(detectCores()-1)
-clusterExport(cluster, list("stock_price", "fromJSON", "rawToChar"))
-void <- capture.output(clusterEvalQ(cluster,{library(tidyverse)}))
-void <- capture.output(clusterEvalQ(cluster,{library(httr)}))
-result <- parLapply(cluster, X=tickers_interest, fun=stock_price, multiplier="1",
-                         timespan="month",from="2022-01-01", to="2022-06-01")
-```
-
-    ## Error in checkForRemoteErrors(val): 4 nodes produced errors; first error: Can't rename columns that don't exist.
-    ## x Column `c` doesn't exist.
-
-``` r
-reduce(result, bind_rows)
-```
-
-    ## # A tibble: 24 x 7
-    ##    ticker date       close highest
-    ##    <chr>  <date>     <dbl>   <dbl>
-    ##  1 AAPL   2022-01-01 175.     183.
-    ##  2 AAPL   2022-02-01 165.     177.
-    ##  3 AAPL   2022-03-01 175.     180.
-    ##  4 AAPL   2022-04-01 158.     178.
-    ##  5 AAPL   2022-05-01 149.     166.
-    ##  6 AAPL   2022-06-01 142.     152.
-    ##  7 ZM     2022-01-01 154.     185.
-    ##  8 ZM     2022-02-01 133.     156.
-    ##  9 ZM     2022-03-01 117.     136 
-    ## 10 ZM     2022-04-01  99.6    126.
-    ## # ... with 14 more rows, and 3 more
-    ## #   variables: lowest <dbl>,
-    ## #   open <dbl>, volume <dbl>
 
 -   Grouped Daily (Bars)
 
@@ -333,7 +289,7 @@ This endpoint provides the daily open, high, low, and close price
 information for the entire stocks/equities markets.
 
 I am going to define a function named `one_day` to connect the API and
-return a tibble. Users can specify the date through this funciton.
+return a tibble. Users can specify the date through this function.
 
 ``` r
 one_day <- function(date){

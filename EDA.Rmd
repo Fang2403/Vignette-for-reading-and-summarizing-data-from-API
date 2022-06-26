@@ -25,8 +25,6 @@ I used the following packages to interact with API and do EDA:
 
 * zoo: using function `rollmean()` to calculate the moving price.
 
-* parallel: setting up parallel computing.
-
 * tidyr: changing the shape of the tibble.
 
 * GGally: plotting correlation between variables.
@@ -40,7 +38,6 @@ library(jsonlite)
 library(ggplot2)
 library(lubridate)
 library(zoo)
-library(parallel)
 library(tidyr)
 library(corrplot)
 library(GGally)
@@ -130,7 +127,7 @@ ADRC_tickers
 
 This endpoint provides aggregate bars for a stock over a given date range in custom time window sizes. 
 
-First I define a function called `stock_price` to query data for one specific ticker and return a tibble with more meaningful column names. User can customize the date range and time window in this function. Then I use function `lapply` and `stock_price` to generate a tibble for multiple specified tickers. A wrapper function and parallel computing process are provided at the end. 
+First I define a function called `stock_price` to query data for one specific ticker and return a tibble with more meaningful column names. User can customize the date range and time window in this function. Then I use function `lapply` and `stock_price` to generate a tibble for multiple specified tickers. A wrapper function is provided at the end. 
 
 ```{r historial price for one ticker}
 stock_price <- function(ticker, multiplier, timespan, from, to){
@@ -174,27 +171,14 @@ get_price <- function(tickers, num, span, start, end){
     return(stock_data)
 }
 
-get_price(tickers=c("AAPL"), num="2",span="month",start="2021-01-01", end="2022-06-01" )
-```
-
-Parallel computing process to get the same data. 
-
-```{r parallel}
-#set up parallel process
-cluster <- makeCluster(detectCores()-1)
-clusterExport(cluster, list("stock_price", "fromJSON", "rawToChar"))
-void <- capture.output(clusterEvalQ(cluster,{library(tidyverse)}))
-void <- capture.output(clusterEvalQ(cluster,{library(httr)}))
-result <- parLapply(cluster, X=tickers_interest, fun=stock_price, multiplier="1",
-                         timespan="month",from="2022-01-01", to="2022-06-01")
-reduce(result, bind_rows)
+#get_price(tickers=c("AAPL"), num="2",span="month",start="2021-01-01", end="2022-06-01" )
 ```
 
 * Grouped Daily (Bars)
 
 This endpoint provides the daily open, high, low, and close price information for the entire stocks/equities markets.
 
-I am going to define a function named `one_day` to connect the API and return a tibble. Users can specify the date through this funciton.
+I am going to define a function named `one_day` to connect the API and return a tibble. Users can specify the date through this function.
 
 ```{r one day price }
 one_day <- function(date){
