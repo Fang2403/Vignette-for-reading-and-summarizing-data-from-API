@@ -174,7 +174,7 @@ get_price <- function(tickers, num, span, start, end){
     return(stock_data)
 }
 
-get_price(tickers=c("AAPL","ZM"), num="1",span="month",start="2021-01-01", end="2022-06-01" )
+get_price(tickers=c("AAPL"), num="2",span="month",start="2021-01-01", end="2022-06-01" )
 ```
 
 Parallel computing process to get the same data. 

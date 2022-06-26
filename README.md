@@ -96,6 +96,13 @@ type_info <- function(class=NULL, locale=NULL){
 
 #check the function to query all types in US stock market 
 type_data <- type_info(class="stocks")
+```
+
+    ## Error in `chr_as_locations()`:
+    ## ! Can't rename columns that don't exist.
+    ## x Column `description` doesn't exist.
+
+``` r
 type_data
 ```
 
@@ -133,6 +140,13 @@ convert_to_code <- function(text, class=NULL, locale=NULL){
 }
 #check this helper function 
 ADRC <- convert_to_code(text="American Depository Receipt Common")
+```
+
+    ## Error in `chr_as_locations()`:
+    ## ! Can't rename columns that don't exist.
+    ## x Column `description` doesn't exist.
+
+``` r
 ADRC
 ```
 
@@ -170,6 +184,13 @@ tickers_supported <- function(type=NULL, market=NULL, active=TRUE){
 }
 #require all ADRC ticker symbols
 ADRC_tickers <- tickers_supported(type="American Depository Receipt Common")
+```
+
+    ## Error in `chr_as_locations()`:
+    ## ! Can't rename columns that don't exist.
+    ## x Column `description` doesn't exist.
+
+``` r
 ADRC_tickers
 ```
 
@@ -228,6 +249,13 @@ stock_price <- function(ticker, multiplier, timespan, from, to){
 
 # check to query one ticker data
 AAPL_price <- stock_price("AAPL", "1", "day", "2021-06-01", "2022-06-01")
+```
+
+    ## Error in `chr_as_locations()`:
+    ## ! Can't rename columns that don't exist.
+    ## x Column `c` doesn't exist.
+
+``` r
 AAPL_price
 ```
 
@@ -254,6 +282,13 @@ tickers_interest=c("AAPL","ZM","GOOGL","TSLA")
 stock_data <- lapply(X=tickers_interest, FUN=stock_price, multiplier="1",
                          timespan="day",from="2021-06-01", to="2022-06-01") %>%
     reduce(bind_rows)
+```
+
+    ## Error in `chr_as_locations()`:
+    ## ! Can't rename columns that don't exist.
+    ## x Column `c` doesn't exist.
+
+``` r
 stock_data
 ```
 
@@ -284,7 +319,7 @@ get_price <- function(tickers, num, span, start, end){
     return(stock_data)
 }
 
-get_price(tickers=c("AAPL","ZM"), num="1",span="month",start="2021-01-01", end="2022-06-01" )
+get_price(tickers=c("AAPL","ZM"), num="2",span="month",start="2021-01-01", end="2022-06-01" )
 ```
 
     ## Error in `chr_as_locations()`:
