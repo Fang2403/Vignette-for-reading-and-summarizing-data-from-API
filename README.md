@@ -43,6 +43,8 @@ I used the following packages to interact with API and do EDA:
 
 -   GGally: plotting correlation between variables.
 
+-   purrr: combining data frame using `reduce()` function
+
 ``` r
 library(httr)
 library(dplyr)
@@ -54,6 +56,7 @@ library(parallel)
 library(tidyr)
 library(corrplot)
 library(GGally)
+library(purrr)
 ```
 
 # Define User-friendly Functions to Query Data
@@ -225,13 +228,6 @@ stock_price <- function(ticker, multiplier, timespan, from, to){
 
 # check to query one ticker data
 AAPL_price <- stock_price("AAPL", "1", "day", "2021-06-01", "2022-06-01")
-```
-
-    ## Error in `chr_as_locations()`:
-    ## ! Can't rename columns that don't exist.
-    ## x Column `c` doesn't exist.
-
-``` r
 AAPL_price
 ```
 
@@ -258,13 +254,6 @@ tickers_interest=c("AAPL","ZM","GOOGL","TSLA")
 stock_data <- lapply(X=tickers_interest, FUN=stock_price, multiplier="1",
                          timespan="day",from="2021-06-01", to="2022-06-01") %>%
     reduce(bind_rows)
-```
-
-    ## Error in `chr_as_locations()`:
-    ## ! Can't rename columns that don't exist.
-    ## x Column `c` doesn't exist.
-
-``` r
 stock_data
 ```
 

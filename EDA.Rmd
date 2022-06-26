@@ -31,6 +31,8 @@ I used the following packages to interact with API and do EDA:
 
 * GGally: plotting correlation between variables.
 
+* purrr: combining data frame using `reduce()` function
+
 ```{r library}
 library(httr)
 library(dplyr)
@@ -42,6 +44,7 @@ library(parallel)
 library(tidyr)
 library(corrplot)
 library(GGally)
+library(purrr)
 ```
 
 # Define User-friendly Functions to Query Data
