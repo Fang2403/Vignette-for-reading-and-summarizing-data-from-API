@@ -225,6 +225,13 @@ stock_price <- function(ticker, multiplier, timespan, from, to){
 
 # check to query one ticker data
 AAPL_price <- stock_price("AAPL", "1", "day", "2021-06-01", "2022-06-01")
+```
+
+    ## Error in `chr_as_locations()`:
+    ## ! Can't rename columns that don't exist.
+    ## x Column `c` doesn't exist.
+
+``` r
 AAPL_price
 ```
 
@@ -251,6 +258,13 @@ tickers_interest=c("AAPL","ZM","GOOGL","TSLA")
 stock_data <- lapply(X=tickers_interest, FUN=stock_price, multiplier="1",
                          timespan="day",from="2021-06-01", to="2022-06-01") %>%
     reduce(bind_rows)
+```
+
+    ## Error in `chr_as_locations()`:
+    ## ! Can't rename columns that don't exist.
+    ## x Column `c` doesn't exist.
+
+``` r
 stock_data
 ```
 
@@ -315,7 +329,7 @@ reduce(result, bind_rows)
     ##  3 AAPL   2022-03-01 175.     180.
     ##  4 AAPL   2022-04-01 158.     178.
     ##  5 AAPL   2022-05-01 149.     166.
-    ##  6 AAPL   2022-06-01 138.     152.
+    ##  6 AAPL   2022-06-01 142.     152.
     ##  7 ZM     2022-01-01 154.     185.
     ##  8 ZM     2022-02-01 133.     156.
     ##  9 ZM     2022-03-01 117.     136 
@@ -355,21 +369,7 @@ Jun21 <- one_day(date="2022-06-21")
 Jun21
 ```
 
-    ## # A tibble: 11,159 x 6
-    ##    T       open   close highest lowest
-    ##    <chr>  <dbl>   <dbl>   <dbl>  <dbl>
-    ##  1 TDC    36.1   36.8    36.9    35.5 
-    ##  2 PSMM   13.4   13.5    13.5    13.4 
-    ##  3 RL     92.4   92.2    93.0    89.7 
-    ##  4 CEPU    3.08   3.16    3.23    3.07
-    ##  5 MSpE   27.1   27.1    27.2    26.8 
-    ##  6 VLN.~   0.21   0.211   0.235   0.21
-    ##  7 MPV    12.2   12.4    12.5    12.2 
-    ##  8 ROP   376.   383.    383.    376.  
-    ##  9 IPOD~   9.96  10.1    10.1     9.96
-    ## 10 HIE     9.35   9.59    9.66    9.34
-    ## # ... with 11,149 more rows, and 1
-    ## #   more variable: volume <dbl>
+    ## Error in eval(expr, envir, enclos): object 'Jun21' not found
 
 # EDA
 
