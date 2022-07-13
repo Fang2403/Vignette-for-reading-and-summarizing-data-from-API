@@ -147,7 +147,7 @@ ticker type or description.
 ``` r
 tickers_supported <- function(type=NULL, market=NULL, active=TRUE){
     mainURL <- "https://api.polygon.io/v3/reference/tickers?"
-    apikey <- "&apiKey=dJT0WQZ7GwH45bAZ8TBZT3KusMgjNJM2"
+    apikey <- ""
     limit <- "limit=1000"
     if (! is.null(type)) {type <- paste0("type=",convert_to_code(text=type),"&")}
     if (! is.null(market)) {market <- paste0("market=",market,"&")}
@@ -207,7 +207,7 @@ multiple specified tickers. A wrapper function is provided at the end.
 ``` r
 stock_price <- function(ticker, multiplier, timespan, from, to){
     mainURL <- "https://api.polygon.io/v2/aggs"
-    apikey <- "?limit=1000&apiKey=dJT0WQZ7GwH45bAZ8TBZT3KusMgjNJM2"
+    apikey <- "?limit=1000"
     ticker_sym <- paste0("/ticker/", ticker)
     range <- paste0("/range/", multiplier,"/", timespan)
     from <- paste0("/", from)
@@ -294,7 +294,7 @@ return a tibble. Users can specify the date through this function.
 ``` r
 one_day <- function(date){
     mainURL <- "https://api.polygon.io/v2/aggs/grouped/locale/us/market/stocks/"
-    apikey <- "?adjusted=true&apiKey=dJT0WQZ7GwH45bAZ8TBZT3KusMgjNJM2"
+    apikey <- "?adjusted=true"
     date_raw <- GET(paste0(mainURL, date, apikey))
     date_data <- fromJSON(rawToChar(date_raw$content))
     date_info <- date_data$results %>% as_tibble() %>% rename( close=c,
